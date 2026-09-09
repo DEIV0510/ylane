@@ -1,0 +1,332 @@
+@import 'tailwindcss';
+
+/* ══════════════════════════════════════════════════════════════════
+   YLANE PERFUMES — sistema visual
+   Negro · Vino profundo · Champagne (acento) · Marfil
+   ══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --color-noir: #090909;
+  --color-noir-soft: #121011;
+  --color-noir-lift: #1b1719;
+  --color-vino: #5a101c;
+  --color-vino-dark: #3a0710;
+  --color-vino-glow: #7a1a2a;
+  --color-champagne: #c7a66a;
+  --color-champagne-soft: #e0c894;
+  --color-marfil: #f4efe8;
+  --color-marfil-dim: #ded6cc;
+  --color-gris: #77716e;
+
+  --font-display: var(--font-bodoni), 'Bodoni Moda', 'Didot', Georgia, serif;
+  --font-sans: var(--font-jost), 'Jost', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-none: 0px;
+
+  --ease-silk: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Superficies ────────────────────────────────────────────────────
+   Cada bloque declara data-surface y hereda sus colores. Así se alterna
+   claro/oscuro sin reescribir clases en cada elemento hijo.           */
+@layer base {
+  :root {
+    --surface-bg: var(--color-noir);
+    --surface-fg: var(--color-marfil);
+    --surface-muted: #9a938e;
+    --surface-line: rgb(199 166 106 / 0.22);
+    --surface-card: var(--color-noir-soft);
+    --surface-input: rgb(255 255 255 / 0.04);
+  }
+
+  [data-surface='claro'] {
+    --surface-bg: var(--color-marfil);
+    --surface-fg: #1a1416;
+    --surface-muted: #6b625d;
+    --surface-line: rgb(26 20 22 / 0.14);
+    --surface-card: #ffffff;
+    --surface-input: rgb(26 20 22 / 0.04);
+  }
+
+  [data-surface='vino'] {
+    --surface-bg: var(--color-vino-dark);
+    --surface-fg: var(--color-marfil);
+    --surface-muted: #c8b3b6;
+    --surface-line: rgb(199 166 106 / 0.3);
+    --surface-card: rgb(0 0 0 / 0.25);
+    --surface-input: rgb(255 255 255 / 0.06);
+  }
+
+  [data-surface] {
+    background-color: var(--surface-bg);
+    color: var(--surface-fg);
+  }
+
+  * {
+    border-color: var(--surface-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-noir);
+    color: var(--color-marfil);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    line-height: 1.06;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--color-vino);
+    color: var(--color-marfil);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-champagne);
+    outline-offset: 3px;
+  }
+
+  input, textarea, select, button {
+    font: inherit;
+    color: inherit;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
+
+/* ── Utilidades de marca ───────────────────────────────────────────── */
+@utility eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-champagne);
+}
+
+@utility rule-thin {
+  border-top: 1px solid var(--surface-line);
+}
+
+@utility shell {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 84rem;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .shell {
+    padding-inline: 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .shell {
+    padding-inline: 3.5rem;
+  }
+}
+
+/* Título editorial: escala fluida sin romper en móvil */
+@utility display-xl {
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 9vw, 7rem);
+  line-height: 0.94;
+  letter-spacing: -0.02em;
+}
+
+@utility display-lg {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.04;
+}
+
+@utility display-md {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.12;
+}
+
+/* ── Texturas ──────────────────────────────────────────────────────── */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* ── Revelado al hacer scroll ───────────────────────────────────────
+   El estado oculto SÓLO se aplica cuando el script está activo
+   (html.js-ready). Sin JS, o si el observer no llega a dispararse,
+   el contenido queda visible.                                        */
+@media (prefers-reduced-motion: no-preference) {
+  html.js-ready [data-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  html.js-ready [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 0.85s var(--ease-silk),
+      transform 0.85s var(--ease-silk);
+  }
+
+  html.js-ready [data-reveal='fade'] {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Scrollbars discretos ───────────────────────────────────────────── */
+.scroll-row {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(199 166 106 / 0.35) transparent;
+}
+
+.scroll-row::-webkit-scrollbar {
+  height: 3px;
+}
+
+.scroll-row::-webkit-scrollbar-thumb {
+  background: rgb(199 166 106 / 0.35);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Animaciones puntuales ──────────────────────────────────────────── */
+@keyframes ylane-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ylane-veil {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes ylane-shimmer {
+  0% {
+    background-position: -160% 0;
+  }
+  100% {
+    background-position: 260% 0;
+  }
+}
+
+@keyframes ylane-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -2%, 0) scale(1.04);
+  }
+}
+
+.animate-fade-up {
+  animation: ylane-fade-up 0.7s var(--ease-silk) both;
+}
+
+.animate-drift {
+  animation: ylane-drift 18s ease-in-out infinite;
+}
+
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgb(199 166 106 / 0.16) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: ylane-shimmer 2.6s linear infinite;
+}
+
+/* ── Contenido editable renderizado (páginas del panel) ─────────────── */
+.prose-ylane h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  margin-top: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-ylane h2:first-child {
+  margin-top: 0;
+}
+
+.prose-ylane p {
+  margin-bottom: 1rem;
+  color: var(--surface-muted);
+  max-width: 68ch;
+}
+
+.prose-ylane ul {
+  margin-bottom: 1rem;
+  padding-left: 1.1rem;
+  list-style: none;
+}
+
+.prose-ylane li {
+  position: relative;
+  margin-bottom: 0.5rem;
+  color: var(--surface-muted);
+}
+
+.prose-ylane li::before {
+  content: '';
+  position: absolute;
+  left: -1.1rem;
+  top: 0.72em;
+  width: 0.4rem;
+  height: 1px;
+  background: var(--color-champagne);
+}
