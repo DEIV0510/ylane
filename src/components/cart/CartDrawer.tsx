@@ -1,18 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCarrito } from './CartProvider';
 import { useConfig } from '@/components/ConfigProvider';
 import { formatCOP } from '@/lib/format';
+import { calcularEnvio, calcularTotal } from '@/lib/envio';
 import { mensajePedido, whatsappUrl } from '@/lib/whatsapp';
 import { ProductPlaceholder } from '@/components/product/ProductPlaceholder';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 import { trackEvento } from '@/lib/analytics';
 
 export function CartDrawer() {
   const { items, abierto, cerrar, cambiarCantidad, quitar, subtotal, unidades } = useCarrito();
   const config = useConfig();
+  const panel = useRef<HTMLElement>(null);
+  useFocusTrap(panel, abierto);
 
   useEffect(() => {
     if (!abierto) return;
@@ -28,9 +32,12 @@ export function CartDrawer() {
     };
   }, [abierto, cerrar]);
 
+  const envio = calcularEnvio(subtotal, { costo: config.envioCosto, gratisDesde: config.envioGratisDesde });
+  const total = calcularTotal(subtotal, 0, envio.costo);
+
   const enlaceWhatsapp = whatsappUrl(
     config.whatsapp,
-    mensajePedido(items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })), subtotal),
+    mensajePedido(items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })), total),
   );
 
   return (
@@ -43,10 +50,12 @@ export function CartDrawer() {
         }`}
       />
       <aside
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label="Carrito de compras"
         aria-hidden={!abierto}
+        inert={!abierto}
         className={`fixed right-0 top-0 z-70 flex h-dvh w-full max-w-[26rem] flex-col border-l border-[var(--surface-line)] bg-noir-soft text-marfil transition-transform duration-500 ease-[var(--ease-silk)] ${
           abierto ? 'translate-x-0' : 'translate-x-full'
         }`}
@@ -59,7 +68,7 @@ export function CartDrawer() {
             type="button"
             onClick={cerrar}
             aria-label="Cerrar carrito"
-            className="p-1 text-marfil-dim transition-colors hover:text-champagne"
+            className="-mr-2 flex size-11 items-center justify-center text-marfil-dim transition-colors hover:text-champagne"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -157,9 +166,11 @@ export function CartDrawer() {
                 </span>
               </div>
               <p className="mt-1 text-[0.7rem] text-[var(--surface-muted)]">
-                {config.envioCosto != null
-                  ? `Envío: ${formatCOP(config.envioCosto)}`
-                  : 'El envío se calcula al confirmar el pedido.'}
+                {envio.costo == null
+                  ? 'El envío se coordina contigo al confirmar el pedido.'
+                  : envio.costo === 0
+                    ? `Envío gratis · Total ${formatCOP(total)}`
+                    : `Envío ${formatCOP(envio.costo)} · Total ${formatCOP(total)}`}
               </p>
 
               <Link

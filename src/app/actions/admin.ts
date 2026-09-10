@@ -23,6 +23,7 @@ import { assertAdmin } from '@/lib/auth';
 import { hashPassword, verifyPassword } from '@/lib/password';
 import { slugify, textoBuscador } from '@/lib/text';
 import { ESTADOS_PEDIDO } from '@/lib/format';
+import { FORMATOS_ANALITICA } from '@/lib/settings';
 
 export type Estado = { ok: boolean; mensaje: string } | null;
 
@@ -63,6 +64,43 @@ const textoOpcional = z
   .string()
   .optional()
   .transform((valor) => (valor?.trim() ? valor.trim() : null));
+
+const SINONIMOS_GENERO: Record<string, string> = {
+  DAMA: 'mujer dama femenino',
+  CABALLERO: 'hombre caballero masculino',
+  UNISEX: 'unisex',
+};
+
+const SINONIMOS_TIPO: Record<string, string> = {
+  arabe: 'arabe arabes oriental',
+  nicho: 'nicho',
+  disenador: 'disenador diseñador',
+  comercial: 'comercial',
+};
+
+/**
+ * Texto normalizado que alimenta el buscador. Vive en un solo sitio para que
+ * cualquier acción que cambie nombre, marca, género o tipo lo recalcule igual.
+ */
+function indiceBuscador(producto: {
+  codigo: string;
+  nombre: string;
+  marca?: string | null;
+  genero: string;
+  tipo?: string | null;
+  familiaOlfativa?: string | null;
+  tags?: string[] | null;
+}): string {
+  return textoBuscador([
+    producto.codigo,
+    producto.nombre,
+    producto.marca,
+    SINONIMOS_GENERO[producto.genero],
+    producto.tipo ? SINONIMOS_TIPO[producto.tipo] : null,
+    producto.familiaOlfativa,
+    (producto.tags ?? []).join(' '),
+  ]);
+}
 
 /* ═══════════════════════════════ PRODUCTOS ═══════════════════════ */
 const esquemaProducto = z.object({
@@ -126,15 +164,15 @@ export async function guardarProducto(_previo: Estado, formulario: FormData): Pr
     ? await db.select({ nombre: brands.nombre }).from(brands).where(eq(brands.id, datos.marcaId)).get()
     : null;
 
-  const buscador = textoBuscador([
-    datos.codigo,
-    datos.nombre,
-    marca?.nombre,
-    datos.genero === 'DAMA' ? 'mujer dama femenino' : datos.genero === 'CABALLERO' ? 'hombre caballero masculino' : 'unisex',
-    datos.tipo === 'arabe' ? 'arabe arabes oriental' : datos.tipo ?? '',
-    datos.familiaOlfativa,
-    (datos.tags ?? []).join(' '),
-  ]);
+  const buscador = indiceBuscador({
+    codigo: datos.codigo,
+    nombre: datos.nombre,
+    marca: marca?.nombre,
+    genero: datos.genero,
+    tipo: datos.tipo,
+    familiaOlfativa: datos.familiaOlfativa,
+    tags: datos.tags,
+  });
 
   const valores = {
     codigo: datos.codigo,
@@ -267,6 +305,8 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
   if (cambios.size === 0) return error('No hay cambios que guardar');
 
   let actualizados = 0;
+  const rechazados: string[] = [];
+
   for (const [id, valores] of cambios) {
     const actual = await db.select().from(products).where(eq(products.id, id)).get();
     if (!actual) continue;
@@ -275,6 +315,18 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
       precioAnterior: valores.precioAnterior !== undefined ? valores.precioAnterior : actual.precioAnterior,
       stock: valores.stock !== undefined ? valores.stock : actual.stock,
     };
+
+    // Un "precio anterior" que no sea mayor que el precio pintaría un descuento
+    // que no existe. Se rechaza la fila en vez de publicar una oferta falsa.
+    if (nuevos.precioAnterior != null && (nuevos.precio == null || nuevos.precioAnterior <= nuevos.precio)) {
+      rechazados.push(actual.codigo);
+      continue;
+    }
+    if (nuevos.precio != null && nuevos.precio < 0) {
+      rechazados.push(actual.codigo);
+      continue;
+    }
+
     if (
       nuevos.precio === actual.precio &&
       nuevos.precioAnterior === actual.precioAnterior &&
@@ -291,7 +343,14 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
 
   revalidatePath('/admin/productos/precios');
   refrescarTienda();
-  return ok(`${actualizados} ${actualizados === 1 ? 'referencia actualizada' : 'referencias actualizadas'}`);
+
+  const mensaje = `${actualizados} ${actualizados === 1 ? 'referencia actualizada' : 'referencias actualizadas'}`;
+  if (rechazados.length) {
+    return error(
+      `${mensaje}. Sin guardar (el precio anterior debe ser mayor que el precio): ${rechazados.join(', ')}`,
+    );
+  }
+  return ok(mensaje);
 }
 
 /* ═══════════════════════════════ IMÁGENES ════════════════════════ */
@@ -358,29 +417,77 @@ export async function cambiarEstadoPedido(id: number, estado: string) {
   if (!pedido) return;
 
   // Al confirmar por primera vez se descuenta el inventario de las referencias
-  // que tengan control de stock. Al cancelar, se devuelve.
+  // que tengan control de stock. Al cancelar, se devuelve exactamente lo mismo.
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id)).all();
 
+  // La bandera se toma con un UPDATE condicional: si dos pestañas confirman a la
+  // vez, sólo una encuentra `inventario_descontado = 0` y descuenta.
   if (estado === 'confirmado' && !pedido.inventarioDescontado) {
-    for (const item of items) {
-      if (!item.productId) continue;
-      await db
-        .update(products)
-        .set({ stock: sql`case when ${products.stock} is null then null else max(0, ${products.stock} - ${item.cantidad}) end` })
-        .where(eq(products.id, item.productId));
+    const tomado = await db
+      .update(orders)
+      .set({ inventarioDescontado: true })
+      .where(and(eq(orders.id, id), eq(orders.inventarioDescontado, false)))
+      .returning({ id: orders.id })
+      .get();
+
+    if (tomado) {
+      try {
+        await db.transaction(async (tx) => {
+          for (const item of items) {
+            if (!item.productId) continue;
+            // Sin `max(0, …)`: el stock puede quedar negativo y así queda a la
+            // vista que se vendió más de lo que había. Recortarlo a 0 haría que
+            // la devolución al cancelar inflara el inventario.
+            await tx
+              .update(products)
+              .set({
+                stock: sql`case when ${products.stock} is null then null else ${products.stock} - ${item.cantidad} end`,
+              })
+              .where(eq(products.id, item.productId));
+          }
+        });
+      } catch {
+        // Si el descuento falla, se suelta la bandera para poder reintentarlo.
+        await db.update(orders).set({ inventarioDescontado: false }).where(eq(orders.id, id));
+        return;
+      }
     }
-    await db.update(orders).set({ inventarioDescontado: true }).where(eq(orders.id, id));
   }
 
   if (estado === 'cancelado' && pedido.inventarioDescontado) {
-    for (const item of items) {
-      if (!item.productId) continue;
-      await db
-        .update(products)
-        .set({ stock: sql`case when ${products.stock} is null then null else ${products.stock} + ${item.cantidad} end` })
-        .where(eq(products.id, item.productId));
+    const soltado = await db
+      .update(orders)
+      .set({ inventarioDescontado: false })
+      .where(and(eq(orders.id, id), eq(orders.inventarioDescontado, true)))
+      .returning({ id: orders.id })
+      .get();
+
+    if (soltado) {
+      try {
+        await db.transaction(async (tx) => {
+          for (const item of items) {
+            if (!item.productId) continue;
+            await tx
+              .update(products)
+              .set({
+                stock: sql`case when ${products.stock} is null then null else ${products.stock} + ${item.cantidad} end`,
+              })
+              .where(eq(products.id, item.productId));
+          }
+
+          // Un pedido cancelado no debe consumir el cupón que usó.
+          if (pedido.cupon) {
+            await tx
+              .update(coupons)
+              .set({ usos: sql`max(0, ${coupons.usos} - 1)` })
+              .where(eq(coupons.codigo, pedido.cupon));
+          }
+        });
+      } catch {
+        await db.update(orders).set({ inventarioDescontado: true }).where(eq(orders.id, id));
+        return;
+      }
     }
-    await db.update(orders).set({ inventarioDescontado: false }).where(eq(orders.id, id));
   }
 
   await db
@@ -390,6 +497,7 @@ export async function cambiarEstadoPedido(id: number, estado: string) {
 
   revalidatePath('/admin/pedidos');
   revalidatePath(`/admin/pedidos/${id}`);
+  revalidatePath('/admin/inventario');
   refrescarTienda();
 }
 
@@ -463,12 +571,26 @@ export async function guardarMarca(_previo: Estado, formulario: FormData): Promi
     logo: String(formulario.get('logo') ?? '').trim() || null,
   };
 
-  if (id) await db.update(brands).set(valores).where(eq(brands.id, id));
-  else await db.insert(brands).values({ ...valores, slug: slugify(nombre) });
+  try {
+    if (id) await db.update(brands).set(valores).where(eq(brands.id, id));
+    else await db.insert(brands).values({ ...valores, slug: await slugMarcaLibre(slugify(nombre)) });
+  } catch {
+    return error('No se pudo guardar la marca. Revisa que el nombre no esté repetido.');
+  }
 
   revalidatePath('/admin/marcas');
   refrescarTienda();
   return ok('Marca guardada');
+}
+
+async function slugMarcaLibre(base: string) {
+  let candidato = base || 'marca';
+  let intento = 2;
+  while (await db.select({ id: brands.id }).from(brands).where(eq(brands.slug, candidato)).get()) {
+    candidato = `${base}-${intento}`;
+    intento += 1;
+  }
+  return candidato;
 }
 
 export async function eliminarMarca(id: number) {
@@ -489,10 +611,39 @@ export async function asignarMarcaMasivo(_previo: Estado, formulario: FormData):
 
   if (!Number.isInteger(marcaId) || ids.length === 0) return error('Selecciona marca y referencias');
 
-  await db.update(products).set({ marcaId }).where(inArray(products.id, ids));
+  const marca = await db.select({ nombre: brands.nombre }).from(brands).where(eq(brands.id, marcaId)).get();
+  if (!marca) return error('La marca ya no existe');
+
+  // El índice del buscador incluye la marca: si no se recalcula, las referencias
+  // dejan de aparecer al buscar por el nombre de la marca recién asignada.
+  const afectados = await db
+    .select({
+      id: products.id,
+      codigo: products.codigo,
+      nombre: products.nombre,
+      genero: products.genero,
+      tipo: products.tipo,
+      familiaOlfativa: products.familiaOlfativa,
+      tags: products.tags,
+    })
+    .from(products)
+    .where(inArray(products.id, ids))
+    .all();
+
+  for (const producto of afectados) {
+    await db
+      .update(products)
+      .set({
+        marcaId,
+        buscador: indiceBuscador({ ...producto, marca: marca.nombre }),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(products.id, producto.id));
+  }
+
   revalidatePath('/admin/marcas');
   refrescarTienda();
-  return ok(`${ids.length} referencias actualizadas`);
+  return ok(`${afectados.length} referencias actualizadas`);
 }
 
 /* ═══════════════════════════════ BANNERS ═════════════════════════ */
@@ -637,6 +788,20 @@ export async function guardarConfiguracion(_previo: Estado, formulario: FormData
   await guardia();
 
   const claves = await db.select({ clave: settings.clave, tipo: settings.tipo }).from(settings).all();
+
+  // Los IDs de analítica acaban dentro de un script: se exige el formato exacto
+  // para que un pegado con comillas no pueda inyectar código en la tienda.
+  for (const [clave, formato] of Object.entries(FORMATOS_ANALITICA)) {
+    const valor = String(formulario.get(clave) ?? '').trim();
+    if (valor && !formato.test(valor)) {
+      return error(
+        clave === 'ga4_id'
+          ? 'El ID de Google Analytics debe ser sólo el identificador, del tipo G-XXXXXXXXXX (no pegues el script completo).'
+          : 'El ID del Meta Pixel debe ser sólo el número de identificación.',
+      );
+    }
+  }
+
   for (const { clave, tipo } of claves) {
     if (tipo === 'bool') {
       await db
@@ -673,10 +838,11 @@ export async function cambiarPassword(_previo: Estado, formulario: FormData): Pr
     return error('La contraseña actual no es correcta');
   }
 
+  // Subir la version invalida cualquier cookie emitida antes de este cambio.
   await db
     .update(users)
-    .set({ passwordHash: await hashPassword(nueva) })
+    .set({ passwordHash: await hashPassword(nueva), sessionVersion: sql`${users.sessionVersion} + 1` })
     .where(eq(users.id, sesion.uid));
 
-  return ok('Contraseña actualizada');
+  return ok('Contraseña actualizada. Vuelve a entrar para seguir usando el panel.');
 }

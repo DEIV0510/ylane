@@ -18,14 +18,27 @@ export async function getCurrentUser(): Promise<SessionPayload | null> {
 
   const usuario = await db.select().from(users).where(eq(users.id, payload.uid)).get();
   if (!usuario || !usuario.activo || usuario.email !== payload.email) return null;
+  // Cambiar la contrasena sube session_version y tumba las cookies anteriores.
+  if (usuario.sessionVersion !== payload.sv) return null;
 
-  return { uid: usuario.id, email: usuario.email, rol: usuario.rol, nombre: usuario.nombre };
+  return {
+    uid: usuario.id,
+    email: usuario.email,
+    rol: usuario.rol,
+    nombre: usuario.nombre,
+    sv: usuario.sessionVersion,
+  };
 }
 
-/** Para páginas del panel: redirige al login si no hay sesión válida. */
+/**
+ * Para páginas del panel: si no hay sesión válida se pasa por /admin/salir,
+ * que borra la cookie antes de llevar al acceso. Redirigir directo al login
+ * dejaría la cookie firmada en el navegador y el middleware la devolvería al
+ * panel una y otra vez (bucle infinito con un usuario desactivado).
+ */
 export async function requireAdmin(): Promise<SessionPayload> {
   const usuario = await getCurrentUser();
-  if (!usuario) redirect('/admin/login');
+  if (!usuario) redirect('/admin/salir');
   return usuario;
 }
 

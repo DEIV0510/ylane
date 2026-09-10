@@ -11,7 +11,10 @@
     "db:push": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs push --force",
     "db:seed": "node --env-file-if-exists=.env.local scripts/seed.ts",
     "db:reset": "node scripts/reset-db.mjs && npm run db:push && npm run db:seed",
-    "import:excel": "node scripts/import-excel.mjs"
+    "import:excel": "node scripts/import-excel.mjs",
+    "test": "node --env-file-if-exists=.env.local scripts/verificar-catalogo.mjs",
+    "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
+    "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",

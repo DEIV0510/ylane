@@ -10,6 +10,7 @@ import { Button, ExternalButton } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/Bits';
 import { ButtonLink } from '@/components/ui/Button';
 import { formatCOP } from '@/lib/format';
+import { calcularEnvio, calcularTotal } from '@/lib/envio';
 import { DEPARTAMENTOS } from '@/lib/colombia';
 import type { MetodoPago } from '@/lib/payments';
 import { crearPedido } from '@/app/actions/publicas';
@@ -26,9 +27,11 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
   const [confirmado, setConfirmado] = useState<Confirmado | null>(null);
   const [metodo, setMetodo] = useState(metodos[0]?.clave ?? 'whatsapp');
 
-  const envioGratis = config.envioGratisDesde != null && subtotal >= config.envioGratisDesde;
-  const costoEnvio = config.envioCosto == null ? null : envioGratis ? 0 : config.envioCosto;
-  const total = costoEnvio != null ? subtotal + costoEnvio : subtotal;
+  // Misma función que usa el servidor al grabar el pedido (src/lib/envio.ts),
+  // para que el total mostrado y el total guardado nunca difieran.
+  const envio = calcularEnvio(subtotal, { costo: config.envioCosto, gratisDesde: config.envioGratisDesde });
+  const costoEnvio = envio.costo;
+  const total = calcularTotal(subtotal, 0, costoEnvio);
 
   /* ── Pantalla de confirmación ─────────────────────────────────── */
   if (confirmado) {
@@ -37,7 +40,12 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
       mensajePedido(confirmado.items, confirmado.total, confirmado.numero),
     );
     return (
-      <div className="mx-auto max-w-xl border border-[var(--surface-line)] p-8 text-center">
+      <div
+        role="status"
+        tabIndex={-1}
+        ref={(nodo) => nodo?.focus()}
+        className="mx-auto max-w-xl border border-[var(--surface-line)] p-8 text-center outline-none"
+      >
         <span className="mx-auto block size-2 rotate-45 bg-champagne" aria-hidden="true" />
         <h2 className="display-md mt-6">Pedido registrado</h2>
         <p className="mt-3 text-[0.9rem] text-[var(--surface-muted)]">
@@ -154,7 +162,7 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
               <select
                 name="departamento"
                 defaultValue=""
-                className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+                className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
               >
                 <option value="" className="bg-noir">
                   Selecciona…
@@ -179,7 +187,7 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
                 rows={3}
                 maxLength={800}
                 placeholder="Barrio, punto de referencia, horario para recibir…"
-                className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)]/70 focus:border-champagne"
+                className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)] focus:border-champagne"
               />
             </label>
           </div>
@@ -256,7 +264,7 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
           <input
             name="cupon"
             maxLength={40}
-            className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-2.5 text-sm uppercase outline-none transition-colors focus:border-champagne"
+            className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-2.5 text-sm uppercase outline-none transition-colors focus:border-champagne"
           />
         </label>
 
@@ -277,7 +285,11 @@ export function CheckoutForm({ metodos }: { metodos: MetodoPago[] }) {
           </div>
         </dl>
 
-        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-red-300">
+            {error}
+          </p>
+        )}
 
         <Button type="submit" tamano="lg" className="mt-6 w-full" disabled={enviando}>
           {enviando ? 'Registrando…' : 'Confirmar pedido'}
@@ -319,7 +331,7 @@ function Campo({
         required={requerido}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+        className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
       />
     </label>
   );

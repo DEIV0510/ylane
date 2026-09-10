@@ -9,6 +9,9 @@ import { SESSION_COOKIE, verifySession } from '@/lib/session';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Siempre accesible: es la vía para soltar una cookie que ya no sirve.
+  if (pathname === '/admin/salir') return NextResponse.next();
+
   if (pathname === '/admin/login') {
     const sesion = await verifySession(request.cookies.get(SESSION_COOKIE)?.value);
     if (sesion) return NextResponse.redirect(new URL('/admin', request.url));

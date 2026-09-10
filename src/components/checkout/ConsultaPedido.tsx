@@ -106,7 +106,7 @@ export function ConsultaPedido() {
           name="numero"
           required
           placeholder="YL-0000-XXXXX"
-          className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm uppercase outline-none transition-colors placeholder:normal-case placeholder:text-[var(--surface-muted)]/70 focus:border-champagne"
+          className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm uppercase outline-none transition-colors placeholder:normal-case placeholder:text-[var(--surface-muted)] focus:border-champagne"
         />
       </label>
       <label className="block">
@@ -118,11 +118,15 @@ export function ConsultaPedido() {
           required
           type="tel"
           inputMode="tel"
-          className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+          className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
         />
       </label>
 
-      {estado && !estado.ok && <p className="text-sm text-red-300">{estado.error}</p>}
+      {estado && !estado.ok && (
+        <p role="alert" className="text-sm text-red-300">
+          {estado.error}
+        </p>
+      )}
 
       <Button type="submit" tamano="lg" className="w-full" disabled={pendiente}>
         {pendiente ? 'Buscando…' : 'Consultar'}

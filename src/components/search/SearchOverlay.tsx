@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { formatCOP, GENERO_ETIQUETA } from '@/lib/format';
 import { ProductPlaceholder } from '@/components/product/ProductPlaceholder';
 import { trackEvento } from '@/lib/analytics';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 type Sugerencia = {
   id: number;
@@ -27,6 +28,8 @@ export function SearchOverlay({ abierto, onCerrar }: { abierto: boolean; onCerra
   const [cargando, setCargando] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const panel = useRef<HTMLDivElement>(null);
+  useFocusTrap(panel, abierto);
 
   useEffect(() => {
     if (!abierto) return;
@@ -85,10 +88,12 @@ export function SearchOverlay({ abierto, onCerrar }: { abierto: boolean; onCerra
 
   return (
     <div
+      ref={panel}
       role="dialog"
       aria-modal="true"
       aria-label="Buscar perfumes"
       aria-hidden={!abierto}
+      inert={!abierto}
       className={`fixed inset-0 z-80 transition-opacity duration-300 ${
         abierto ? 'opacity-100' : 'pointer-events-none opacity-0'
       }`}
@@ -121,13 +126,13 @@ export function SearchOverlay({ abierto, onCerrar }: { abierto: boolean; onCerra
             enterKeyHint="search"
             placeholder="Busca por nombre, marca o código…"
             aria-label="Término de búsqueda"
-            className="w-full bg-transparent py-2 font-[family-name:var(--font-display)] text-xl text-marfil outline-none placeholder:text-[var(--surface-muted)] placeholder:font-[family-name:var(--font-sans)] placeholder:text-base md:text-3xl"
+            className="w-full border-b border-transparent bg-transparent py-2 font-[family-name:var(--font-display)] text-xl text-marfil outline-none transition-colors placeholder:text-[var(--surface-muted)] placeholder:font-[family-name:var(--font-sans)] placeholder:text-base focus-visible:border-champagne md:text-3xl"
           />
           <button
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar búsqueda"
-            className="shrink-0 p-2 text-marfil-dim transition-colors hover:text-champagne"
+            className="-mr-2 flex size-11 shrink-0 items-center justify-center text-marfil-dim transition-colors hover:text-champagne"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
               <path d="M6 6l12 12M18 6L6 18" />

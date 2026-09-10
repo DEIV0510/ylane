@@ -19,6 +19,11 @@ export const users = sqliteTable('users', {
   rol: text('rol').notNull().default('admin'), // admin | editor
   activo: integer('activo', { mode: 'boolean' }).notNull().default(true),
   ultimoAcceso: text('ultimo_acceso'),
+  // Sube al cambiar la contrasena: invalida las cookies ya emitidas.
+  sessionVersion: integer('session_version').notNull().default(1),
+  // Freno a la fuerza bruta en el acceso al panel.
+  intentosFallidos: integer('intentos_fallidos').notNull().default(0),
+  bloqueadoHasta: text('bloqueado_hasta'),
   createdAt: text('created_at').notNull().default(now),
 });
 

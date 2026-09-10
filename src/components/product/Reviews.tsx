@@ -32,7 +32,7 @@ export function Reviews({
           </h2>
           {rating != null && (
             <div className="mt-3 flex items-center gap-3">
-              <Stars valor={rating} size={16} className="text-champagne" />
+              <Stars valor={rating} size={16} className="text-champagne" etiquetado={false} />
               <span className="text-sm text-[var(--surface-muted)]">{rating.toFixed(1)} de 5</span>
             </div>
           )}
@@ -50,7 +50,7 @@ export function Reviews({
       {formularioAbierto && (
         <div className="mt-8 border border-[var(--surface-line)] p-6">
           {estado?.ok ? (
-            <p className="text-sm text-champagne">
+            <p role="status" tabIndex={-1} ref={(nodo) => nodo?.focus()} className="text-sm text-champagne outline-none">
               ¡Gracias! Tu reseña quedó registrada y se publicará después de revisarla.
             </p>
           ) : (
@@ -95,12 +95,14 @@ export function Reviews({
                   minLength={10}
                   maxLength={1200}
                   rows={4}
-                  className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+                  className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
                 />
               </label>
 
               {estado && !estado.ok && (
-                <p className="text-sm text-red-300 sm:col-span-2">{estado.error}</p>
+                <p role="alert" className="text-sm text-red-300 sm:col-span-2">
+                  {estado.error}
+                </p>
               )}
 
               <div className="sm:col-span-2">
@@ -158,7 +160,7 @@ function Campo({
         name={nombre}
         type={tipo}
         required={requerido}
-        className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+        className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
       />
     </label>
   );

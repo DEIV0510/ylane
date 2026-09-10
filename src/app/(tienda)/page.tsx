@@ -279,7 +279,9 @@ async function categoriasDestacadas(): Promise<CategoriaHome[]> {
     }),
   );
 
-  return conteos;
+  // Una tarjeta que lleva a un listado vacío es un enlace roto para el cliente:
+  // «Best Sellers» y demás colecciones sólo aparecen cuando tienen referencias.
+  return conteos.filter((categoria) => categoria.total > 0);
 }
 
 /** Se calcula con pedidos reales; si todavía no hay ventas, la sección no aparece. */

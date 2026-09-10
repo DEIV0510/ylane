@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { jsonLd } from '@/lib/jsonld';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getProducto, relacionados } from '@/lib/catalog';
@@ -119,7 +120,7 @@ export default async function ProductoPage({ params }: Props) {
     <div data-surface="oscuro">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(datosEstructurados) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(datosEstructurados) }}
       />
       <RegistrarVista productId={producto.id} />
 

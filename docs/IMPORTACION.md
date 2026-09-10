@@ -1,6 +1,6 @@
 # Informe de importación del catálogo — YLANE PERFUMES
 
-Generado automáticamente por `npm run import:excel` el 9/9/2026, 12:45:28 a. m..
+Generado automáticamente por `npm run import:excel` el 10/9/2026, 9:29:58 a. m..
 Archivo de origen: **catalogo-ylane.xlsx**
 
 ## Resumen

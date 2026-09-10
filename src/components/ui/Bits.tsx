@@ -80,17 +80,22 @@ export function Stars({
   valor,
   size = 12,
   className = '',
+  etiquetado = true,
 }: {
   valor: number;
   size?: number;
   className?: string;
+  /** Añade el equivalente textual. Desactívalo si el texto ya está al lado. */
+  etiquetado?: boolean;
 }) {
   const llenas = Math.round(valor);
   return (
-    <span className={`inline-flex items-center gap-0.5 ${className}`} aria-hidden="true">
+    <span className={`inline-flex items-center gap-0.5 ${className}`}>
+      {etiquetado && <span className="sr-only">{valor.toFixed(1)} de 5 estrellas</span>}
       {[1, 2, 3, 4, 5].map((indice) => (
         <svg
           key={indice}
+          aria-hidden="true"
           width={size}
           height={size}
           viewBox="0 0 20 20"

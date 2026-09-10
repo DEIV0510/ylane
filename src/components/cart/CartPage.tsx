@@ -8,6 +8,7 @@ import { ProductPlaceholder } from '@/components/product/ProductPlaceholder';
 import { EmptyState } from '@/components/ui/Bits';
 import { ButtonLink, ExternalButton } from '@/components/ui/Button';
 import { formatCOP } from '@/lib/format';
+import { calcularEnvio, calcularTotal } from '@/lib/envio';
 import { mensajePedido, whatsappUrl } from '@/lib/whatsapp';
 
 export function CartPage() {
@@ -31,11 +32,9 @@ export function CartPage() {
     );
   }
 
-  const envio = config.envioCosto;
-  const envioGratis =
-    config.envioGratisDesde != null && subtotal >= config.envioGratisDesde ? true : false;
-  const costoEnvio = envio == null ? null : envioGratis ? 0 : envio;
-  const total = costoEnvio != null ? subtotal + costoEnvio : subtotal;
+  const envio = calcularEnvio(subtotal, { costo: config.envioCosto, gratisDesde: config.envioGratisDesde });
+  const costoEnvio = envio.costo;
+  const total = calcularTotal(subtotal, 0, costoEnvio);
 
   const enlaceWhatsapp = whatsappUrl(
     config.whatsapp,
@@ -155,9 +154,9 @@ export function CartPage() {
           </div>
         </dl>
 
-        {config.envioGratisDesde != null && !envioGratis && (
+        {envio.faltaParaGratis != null && envio.faltaParaGratis > 0 && (
           <p className="mt-4 text-[0.75rem] text-[var(--surface-muted)]">
-            Te faltan {formatCOP(config.envioGratisDesde - subtotal)} para envío gratis.
+            Te faltan {formatCOP(envio.faltaParaGratis)} para envío gratis.
           </p>
         )}
 

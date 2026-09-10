@@ -70,7 +70,7 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
             onClick={() => setMenuAbierto((abierto) => !abierto)}
             aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
             aria-expanded={menuAbierto}
-            className="-ml-1 flex size-10 items-center justify-center text-marfil lg:hidden"
+            className="-ml-1 flex size-11 items-center justify-center text-marfil lg:hidden"
           >
             <span className="flex w-5 flex-col gap-[5px]">
               <span
@@ -100,6 +100,7 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={activo ? 'page' : undefined}
                   className={`relative py-1 text-[0.66rem] font-medium uppercase tracking-[0.2em] transition-colors ${
                     activo ? 'text-champagne' : 'text-marfil hover:text-champagne'
                   }`}
@@ -120,7 +121,7 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
               type="button"
               onClick={() => setBuscadorAbierto(true)}
               aria-label="Buscar perfumes"
-              className="flex size-10 items-center justify-center transition-colors hover:text-champagne"
+              className="flex size-11 items-center justify-center transition-colors hover:text-champagne"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                 <circle cx="11" cy="11" r="7" />
@@ -131,7 +132,7 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
             <Link
               href="/pedido"
               aria-label="Consultar mi pedido"
-              className="flex size-10 items-center justify-center transition-colors hover:text-champagne"
+              className="flex size-11 items-center justify-center transition-colors hover:text-champagne"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                 <circle cx="12" cy="8" r="3.6" />
@@ -143,7 +144,7 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
               type="button"
               onClick={abrir}
               aria-label={`Abrir carrito${unidades ? `, ${unidades} artículos` : ''}`}
-              className="relative flex size-10 items-center justify-center transition-colors hover:text-champagne"
+              className="relative flex size-11 items-center justify-center transition-colors hover:text-champagne"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                 <path d="M6 8h12l-1 12H7L6 8z" />
@@ -158,8 +159,9 @@ export function SiteHeader({ anuncio }: { anuncio: string }) {
           </div>
         </div>
 
-        {/* Menú móvil */}
+        {/* Menú móvil — `inert` evita que el teclado entre en los enlaces ocultos */}
         <div
+          inert={!menuAbierto}
           className={`overflow-hidden border-t border-[var(--surface-line)] bg-noir transition-[max-height] duration-500 ease-[var(--ease-silk)] lg:hidden ${
             menuAbierto ? 'max-h-[80vh]' : 'max-h-0'
           }`}

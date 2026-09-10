@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { jsonLd } from '@/lib/jsonld';
 import Link from 'next/link';
 import { getBloque, parsearFaq } from '@/lib/content';
 import { getSettings } from '@/lib/settings';
@@ -34,7 +35,7 @@ export default async function FaqPage() {
       {datosEstructurados && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(datosEstructurados) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(datosEstructurados) }}
         />
       )}
 

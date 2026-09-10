@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Facetas } from '@/lib/catalog';
 import { GENERO_ETIQUETA, TIPO_ETIQUETA, formatCOP } from '@/lib/format';
+import { useFocusTrap } from '@/lib/use-focus-trap';
 
 type Props = {
   facetas: Facetas;
@@ -26,6 +27,8 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
   const parametros = useSearchParams();
   const [pendiente, iniciarTransicion] = useTransition();
   const [abiertoMovil, setAbiertoMovil] = useState(false);
+  const cajon = useRef<HTMLDivElement>(null);
+  useFocusTrap(cajon, abiertoMovil);
 
   const seleccion = useMemo(
     () => ({
@@ -177,7 +180,11 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
     <>
       {/* Barra superior: ocupa el ancho completo de la rejilla del catálogo */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--surface-line)] py-3 lg:col-span-2">
-        <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--surface-muted)]">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-[0.7rem] uppercase tracking-[0.16em] text-[var(--surface-muted)]"
+        >
           {pendiente ? 'Actualizando…' : `${total} ${total === 1 ? 'referencia' : 'referencias'}`}
         </p>
 
@@ -185,7 +192,7 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
           <button
             type="button"
             onClick={() => setAbiertoMovil(true)}
-            className="flex items-center gap-2 border border-[var(--surface-line)] px-4 py-2 text-[0.65rem] uppercase tracking-[0.16em] transition-colors hover:border-champagne hover:text-champagne lg:hidden"
+            className="flex min-h-11 items-center gap-2 border border-[var(--surface-line)] px-4 py-2.5 text-[0.65rem] uppercase tracking-[0.16em] transition-colors hover:border-champagne hover:text-champagne lg:hidden"
           >
             Filtros{activos > 0 ? ` (${activos})` : ''}
           </button>
@@ -200,7 +207,7 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
                   else params.delete('orden');
                 })
               }
-              className="border border-[var(--surface-line)] bg-transparent px-3 py-2 text-[0.68rem] tracking-normal text-[var(--surface-fg)] outline-none focus:border-champagne"
+              className="min-h-11 border border-[var(--surface-line)] bg-transparent px-3 py-2 text-[0.68rem] tracking-normal text-[var(--surface-fg)] outline-none focus:border-champagne"
             >
               {ORDENES.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor} className="bg-noir text-marfil">
@@ -218,6 +225,7 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
       {/* Panel móvil */}
       <div
         aria-hidden={!abiertoMovil}
+        inert={!abiertoMovil}
         className={`fixed inset-0 z-70 lg:hidden ${abiertoMovil ? '' : 'pointer-events-none'}`}
       >
         <div
@@ -227,6 +235,10 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
           }`}
         />
         <div
+          ref={cajon}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filtros del catálogo"
           className={`absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col border-r border-[var(--surface-line)] bg-noir-soft transition-transform duration-400 ease-[var(--ease-silk)] ${
             abiertoMovil ? 'translate-x-0' : '-translate-x-full'
           }`}
@@ -237,7 +249,7 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
               type="button"
               onClick={() => setAbiertoMovil(false)}
               aria-label="Cerrar filtros"
-              className="p-1 text-marfil-dim hover:text-champagne"
+              className="-mr-2 flex size-11 items-center justify-center text-marfil-dim hover:text-champagne"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
                 <path d="M6 6l12 12M18 6L6 18" />
@@ -293,8 +305,8 @@ function Casilla({
       <input type="checkbox" checked={activo} onChange={onChange} className="peer sr-only" />
       <span
         aria-hidden="true"
-        className={`flex size-4 shrink-0 items-center justify-center border transition-colors ${
-          activo ? 'border-champagne bg-champagne text-noir' : 'border-current/35'
+        className={`flex size-4 shrink-0 items-center justify-center border transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--foco)] ${
+          activo ? 'border-champagne bg-champagne text-noir' : 'border-[var(--surface-control)]'
         }`}
       >
         {activo && (

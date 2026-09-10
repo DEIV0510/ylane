@@ -5,6 +5,8 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db';
 import { coupons, customers, leads, orderItems, orders, products, reviews } from '@/db/schema';
+import { calcularEnvio, calcularTotal, envioDesdeAjustes } from '@/lib/envio';
+import { getSettings } from '@/lib/settings';
 
 /* ──────────────────────────────────────────────────────────────────
    Acciones públicas (sin sesión).
@@ -123,8 +125,15 @@ export async function crearPedido(entrada: unknown): Promise<Resultado<PedidoCre
   }
   const datos = analisis.data;
 
+  // Si el carrito trae el mismo id repetido, se suman las cantidades ANTES de
+  // validar; si no, cada línea se compararía por separado contra el stock total.
+  const cantidadPorId = new Map<number, number>();
+  for (const item of datos.items) {
+    cantidadPorId.set(item.id, (cantidadPorId.get(item.id) ?? 0) + item.cantidad);
+  }
+
   // Los precios se releen de la base: nunca se confía en el cliente.
-  const ids = datos.items.map((item) => item.id);
+  const ids = [...cantidadPorId.keys()];
   const referencias = await db
     .select({
       id: products.id,
@@ -139,8 +148,8 @@ export async function crearPedido(entrada: unknown): Promise<Resultado<PedidoCre
     .all();
 
   const lineas: { productId: number; codigo: string; nombre: string; precio: number; cantidad: number }[] = [];
-  for (const item of datos.items) {
-    const referencia = referencias.find((fila) => fila.id === item.id);
+  for (const [id, cantidad] of cantidadPorId) {
+    const referencia = referencias.find((fila) => fila.id === id);
     if (!referencia || !referencia.activo) {
       return { ok: false, error: 'Una de las referencias ya no está disponible. Actualiza tu carrito.' };
     }
@@ -150,10 +159,10 @@ export async function crearPedido(entrada: unknown): Promise<Resultado<PedidoCre
         error: `“${referencia.nombre}” todavía no tiene precio publicado. Escríbenos por WhatsApp para cotizarlo.`,
       };
     }
-    if (referencia.stock != null && referencia.stock < item.cantidad) {
+    if (referencia.stock != null && referencia.stock < cantidad) {
       return {
         ok: false,
-        error: `No tenemos ${item.cantidad} unidades de “${referencia.nombre}”. Ajusta la cantidad.`,
+        error: `No tenemos ${cantidad} unidades de “${referencia.nombre}”. Ajusta la cantidad.`,
       };
     }
     lineas.push({
@@ -161,7 +170,7 @@ export async function crearPedido(entrada: unknown): Promise<Resultado<PedidoCre
       codigo: referencia.codigo,
       nombre: referencia.nombre,
       precio: referencia.precio,
-      cantidad: item.cantidad,
+      cantidad,
     });
   }
 
@@ -191,66 +200,95 @@ export async function crearPedido(entrada: unknown): Promise<Resultado<PedidoCre
         ? Math.round((subtotal * cupon.valor) / 100)
         : Math.round(cupon.valor);
     descuento = Math.min(descuento, subtotal);
+
+    // El contador se sube de forma atómica: si otro pedido agotó los usos entre
+    // la comprobación y este punto, la condición no encaja y el cupón no aplica.
+    const reservado = await db
+      .update(coupons)
+      .set({ usos: sql`${coupons.usos} + 1` })
+      .where(
+        and(
+          eq(coupons.id, cupon.id),
+          eq(coupons.activo, true),
+          cupon.usosMaximos != null
+            ? sql`${coupons.usos} < ${cupon.usosMaximos}`
+            : sql`1 = 1`,
+        ),
+      )
+      .returning({ id: coupons.id })
+      .get();
+
+    if (!reservado) return { ok: false, error: 'El cupón alcanzó su límite de usos' };
     cuponAplicado = cupon.codigo;
   }
 
-  const total = Math.max(0, subtotal - descuento);
+  // El envío se calcula en el servidor con la misma fórmula que ve el cliente,
+  // para que el total guardado y el total mostrado coincidan siempre.
+  const ajustes = await getSettings();
+  const envio = calcularEnvio(subtotal - descuento, envioDesdeAjustes(ajustes));
+  const total = calcularTotal(subtotal, descuento, envio.costo);
   const numero = generarNumero();
 
-  const cliente = await db
-    .insert(customers)
-    .values({
-      nombre: datos.nombre,
-      apellido: datos.apellido || null,
-      telefono: datos.telefono,
-      email: datos.email || null,
-      departamento: datos.departamento || null,
-      ciudad: datos.ciudad || null,
-      direccion: datos.direccion || null,
-    })
-    .returning({ id: customers.id })
-    .get();
+  try {
+    await db.transaction(async (tx) => {
+      const cliente = await tx
+        .insert(customers)
+        .values({
+          nombre: datos.nombre,
+          apellido: datos.apellido || null,
+          telefono: datos.telefono,
+          email: datos.email || null,
+          departamento: datos.departamento || null,
+          ciudad: datos.ciudad || null,
+          direccion: datos.direccion || null,
+        })
+        .returning({ id: customers.id })
+        .get();
 
-  const pedido = await db
-    .insert(orders)
-    .values({
-      numero,
-      customerId: cliente.id,
-      nombre: datos.nombre,
-      apellido: datos.apellido || null,
-      telefono: datos.telefono,
-      email: datos.email || null,
-      departamento: datos.departamento || null,
-      ciudad: datos.ciudad || null,
-      direccion: datos.direccion || null,
-      notas: datos.notas || null,
-      subtotal,
-      envio: 0,
-      descuento,
-      total,
-      cupon: cuponAplicado,
-      metodoPago: datos.metodoPago,
-      estado: 'pendiente',
-    })
-    .returning({ id: orders.id })
-    .get();
+      const pedido = await tx
+        .insert(orders)
+        .values({
+          numero,
+          customerId: cliente.id,
+          nombre: datos.nombre,
+          apellido: datos.apellido || null,
+          telefono: datos.telefono,
+          email: datos.email || null,
+          departamento: datos.departamento || null,
+          ciudad: datos.ciudad || null,
+          direccion: datos.direccion || null,
+          notas: datos.notas || null,
+          subtotal,
+          envio: envio.costo ?? 0,
+          descuento,
+          total,
+          cupon: cuponAplicado,
+          metodoPago: datos.metodoPago,
+          estado: 'pendiente',
+        })
+        .returning({ id: orders.id })
+        .get();
 
-  await db.insert(orderItems).values(
-    lineas.map((linea) => ({
-      orderId: pedido.id,
-      productId: linea.productId,
-      codigo: linea.codigo,
-      nombre: linea.nombre,
-      precio: linea.precio,
-      cantidad: linea.cantidad,
-    })),
-  );
-
-  if (cuponAplicado) {
-    await db
-      .update(coupons)
-      .set({ usos: sql`${coupons.usos} + 1` })
-      .where(eq(coupons.codigo, cuponAplicado));
+      await tx.insert(orderItems).values(
+        lineas.map((linea) => ({
+          orderId: pedido.id,
+          productId: linea.productId,
+          codigo: linea.codigo,
+          nombre: linea.nombre,
+          precio: linea.precio,
+          cantidad: linea.cantidad,
+        })),
+      );
+    });
+  } catch {
+    // Si el pedido no se pudo grabar, se devuelve el uso reservado del cupón.
+    if (cuponAplicado) {
+      await db
+        .update(coupons)
+        .set({ usos: sql`max(0, ${coupons.usos} - 1)` })
+        .where(eq(coupons.codigo, cuponAplicado));
+    }
+    return { ok: false, error: 'No pudimos registrar el pedido. Inténtalo de nuevo.' };
   }
 
   return { ok: true, datos: { numero, total } };

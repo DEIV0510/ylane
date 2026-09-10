@@ -1,4 +1,7 @@
-import { SignJWT, jwtVerify } from 'jose';
+// Subrutas exactas: importar 'jose' entero arrastra el código de JWE, que usa
+// CompressionStream y no existe en el runtime Edge donde corre el middleware.
+import { SignJWT } from 'jose/jwt/sign';
+import { jwtVerify } from 'jose/jwt/verify';
 
 /**
  * Sesión del panel: JWT firmado (HS256) guardado en una cookie httpOnly.
@@ -13,6 +16,8 @@ export type SessionPayload = {
   email: string;
   rol: string;
   nombre: string;
+  /** Version de sesion del usuario: si cambia, la cookie deja de valer. */
+  sv: number;
 };
 
 function secretKey(): Uint8Array {
@@ -44,6 +49,7 @@ export async function verifySession(token: string | undefined): Promise<SessionP
       email: payload.email,
       rol: typeof payload.rol === 'string' ? payload.rol : 'admin',
       nombre: typeof payload.nombre === 'string' ? payload.nombre : '',
+      sv: typeof payload.sv === 'number' ? payload.sv : 0,
     };
   } catch {
     return null;

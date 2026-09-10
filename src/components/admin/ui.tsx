@@ -74,7 +74,7 @@ export function Campo({
         defaultValue={valor ?? ''}
         required={requerido}
         placeholder={placeholder}
-        className="w-full border border-[var(--surface-line)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
+        className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
       />
       {ayuda && <span className="mt-1 block text-[0.7rem] text-[var(--surface-muted)]">{ayuda}</span>}
     </label>
@@ -108,7 +108,7 @@ export function AreaTexto({
         rows={filas}
         defaultValue={valor ?? ''}
         placeholder={placeholder}
-        className="w-full border border-[var(--surface-line)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
+        className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
       />
       {ayuda && <span className="mt-1 block text-[0.7rem] text-[var(--surface-muted)]">{ayuda}</span>}
     </label>
@@ -136,7 +136,7 @@ export function Selector({
       <select
         name={nombre}
         defaultValue={valor ?? ''}
-        className="w-full border border-[var(--surface-line)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
+        className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
       >
         {opciones.map((opcion) => (
           <option key={opcion.valor} value={opcion.valor}>

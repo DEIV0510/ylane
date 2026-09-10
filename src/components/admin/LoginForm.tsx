@@ -21,7 +21,7 @@ export function LoginForm({ destino }: { destino?: string }) {
           required
           autoComplete="username"
           autoFocus
-          className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+          className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
         />
       </label>
 
@@ -34,11 +34,15 @@ export function LoginForm({ destino }: { destino?: string }) {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
+          className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors focus:border-champagne"
         />
       </label>
 
-      {estado?.error && <p className="text-sm text-red-300">{estado.error}</p>}
+      {estado?.error && (
+        <p role="alert" className="text-sm text-red-300">
+          {estado.error}
+        </p>
+      )}
 
       <Button type="submit" tamano="lg" className="w-full" disabled={pendiente}>
         {pendiente ? 'Entrando…' : 'Entrar'}

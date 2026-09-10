@@ -143,7 +143,7 @@ const APERTURAS = {
     '{nombre} es una de las fragancias femeninas que YLANE mantiene en catálogo para quienes buscan carácter más que tendencia.',
     'Para quien busca una fragancia femenina con personalidad propia, {nombre} es una de las referencias disponibles en YLANE.',
     '{nombre} llega a la selección femenina de YLANE para acompañar a quien prefiere que su aroma hable primero.',
-    'En perfumería femenina, {nombre} es una de las referencias que YLANE recomienda cuando se busca algo memorable.',
+    'En perfumería femenina, {nombre} es una de las referencias que YLANE tiene en catálogo.',
   ],
   CABALLERO: [
     '{nombre} forma parte de la selección masculina de YLANE PERFUMES, para quien busca una firma sobria y reconocible.',
@@ -151,7 +151,7 @@ const APERTURAS = {
     '{nombre} es una de las fragancias masculinas que YLANE mantiene en catálogo por su carácter definido.',
     'Para quien busca una fragancia masculina con presencia, {nombre} es una de las referencias disponibles en YLANE.',
     '{nombre} entra en la selección masculina de YLANE pensando en quien quiere una firma constante.',
-    'En perfumería masculina, {nombre} es una de las referencias que YLANE recomienda cuando se busca seguridad.',
+    'En perfumería masculina, {nombre} es una de las referencias que YLANE tiene en catálogo.',
   ],
   UNISEX: [
     '{nombre} forma parte de la selección unisex de YLANE PERFUMES, para quien elige el aroma sin etiquetas.',
@@ -159,15 +159,15 @@ const APERTURAS = {
     '{nombre} es una de las fragancias unisex que YLANE mantiene en catálogo por su versatilidad.',
     'Para quien prefiere fragancias sin género, {nombre} es una de las referencias disponibles en YLANE.',
     '{nombre} llega a la selección unisex de YLANE para quien busca algo distinto a lo habitual.',
-    'En fragancias compartidas, {nombre} es una de las referencias que YLANE recomienda para explorar.',
+    'En fragancias compartidas, {nombre} es una de las referencias que YLANE tiene en catálogo.',
   ],
 };
 
 const CONTEXTO_TIPO = {
   arabe: [
-    'Pertenece a la línea de perfumería árabe, una de las especialidades de la casa y de las más buscadas por nuestros clientes.',
+    'Pertenece a la línea de perfumería árabe, la especialidad de la casa.',
     'Hace parte de nuestra selección de perfumería árabe, la línea con la que más se identifica YLANE.',
-    'Está dentro de la línea árabe del catálogo, la categoría que más movimiento tiene entre quienes ya conocen la tienda.',
+    'Está dentro de la línea árabe del catálogo, una de las principales de la tienda.',
   ],
   nicho: [
     'Pertenece al segmento de perfumería nicho, la parte más selectiva del catálogo.',
@@ -180,8 +180,8 @@ const CONTEXTO_TIPO = {
     'Está dentro de la selección de perfumería de diseñador de la tienda.',
   ],
   comercial: [
-    'Hace parte de la línea comercial del catálogo, de las más consultadas por su reconocimiento.',
-    'Pertenece al grupo de referencias comerciales más conocidas del catálogo.',
+    'Hace parte de la línea comercial del catálogo.',
+    'Pertenece al grupo de referencias de casas ampliamente reconocidas.',
     'Está dentro de las referencias comerciales que YLANE mantiene disponibles.',
   ],
 };

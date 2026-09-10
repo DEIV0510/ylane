@@ -213,7 +213,11 @@ export function PerfumeFinder() {
         })}
       </div>
 
-      {error && <p className="mt-6 text-sm text-red-300">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-6 text-sm text-red-300">
+          {error}
+        </p>
+      )}
 
       <div className="mt-12 flex items-center justify-between gap-4">
         {paso > 0 ? (

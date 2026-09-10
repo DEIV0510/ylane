@@ -24,14 +24,31 @@ export async function getSetting(clave: string, porDefecto = ''): Promise<string
   return ajustes[clave]?.trim() || porDefecto;
 }
 
-/** IDs de analítica: manda la configuración del panel, si no la variable de entorno. */
+/**
+ * IDs de analítica: manda la configuración del panel, si no la variable de entorno.
+ *
+ * Se validan con un formato estricto porque acaban dentro de un script. Un valor
+ * con comillas rompería el literal y ejecutaría código en el navegador de cada
+ * visitante; además evita que se pegue el snippet completo de Google y la
+ * analítica quede rota en silencio.
+ */
+const FORMATO_GA4 = /^(G|UA|AW|GT|GTM)-[A-Z0-9-]{4,24}$/i;
+const FORMATO_PIXEL = /^\d{6,20}$/;
+
+function idValido(valor: string | undefined, formato: RegExp): string {
+  const limpio = valor?.trim() ?? '';
+  return formato.test(limpio) ? limpio : '';
+}
+
 export async function getAnalyticsIds() {
   const ajustes = await getSettings();
   return {
-    ga4: ajustes.ga4_id?.trim() || process.env.NEXT_PUBLIC_GA4_ID?.trim() || '',
-    pixel: ajustes.meta_pixel_id?.trim() || process.env.NEXT_PUBLIC_META_PIXEL_ID?.trim() || '',
+    ga4: idValido(ajustes.ga4_id || process.env.NEXT_PUBLIC_GA4_ID, FORMATO_GA4),
+    pixel: idValido(ajustes.meta_pixel_id || process.env.NEXT_PUBLIC_META_PIXEL_ID, FORMATO_PIXEL),
   };
 }
+
+export const FORMATOS_ANALITICA = { ga4_id: FORMATO_GA4, meta_pixel_id: FORMATO_PIXEL };
 
 export function siteUrl(): string {
   const url = process.env.NEXT_PUBLIC_SITE_URL?.trim();

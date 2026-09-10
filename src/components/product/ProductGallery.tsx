@@ -54,7 +54,8 @@ export function ProductGallery({
           <Image
             key={imagen.id}
             src={imagen.url}
-            alt={imagen.alt ?? nombre}
+            alt={indice === activa ? (imagen.alt ?? nombre) : ''}
+            aria-hidden={indice !== activa}
             fill
             priority={indice === 0}
             sizes="(max-width: 1024px) 100vw, 45vw"

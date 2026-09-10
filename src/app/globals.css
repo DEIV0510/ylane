@@ -33,28 +33,40 @@
   :root {
     --surface-bg: var(--color-noir);
     --surface-fg: var(--color-marfil);
-    --surface-muted: #9a938e;
+    --surface-muted: #a8a19c;
     --surface-line: rgb(199 166 106 / 0.22);
+    /* Borde de controles: más marcado que el hilo decorativo, para llegar a 3:1. */
+    --surface-control: rgb(214 199 172 / 0.55);
     --surface-card: var(--color-noir-soft);
     --surface-input: rgb(255 255 255 / 0.04);
+    --acento: var(--color-champagne);
+    --foco: var(--color-champagne);
   }
 
   [data-surface='claro'] {
     --surface-bg: var(--color-marfil);
     --surface-fg: #1a1416;
-    --surface-muted: #6b625d;
-    --surface-line: rgb(26 20 22 / 0.14);
+    --surface-muted: #5d544f;
+    /* Borde de controles: 3:1 mínimo (WCAG 1.4.11). El hilo decorativo va aparte. */
+    --surface-line: rgb(26 20 22 / 0.16);
+    --surface-control: rgb(26 20 22 / 0.55);
     --surface-card: #ffffff;
     --surface-input: rgb(26 20 22 / 0.04);
+    /* El champagne no contrasta sobre marfil: en claro el acento es el vino. */
+    --acento: var(--color-vino);
+    --foco: var(--color-vino);
   }
 
   [data-surface='vino'] {
     --surface-bg: var(--color-vino-dark);
     --surface-fg: var(--color-marfil);
-    --surface-muted: #c8b3b6;
+    --surface-muted: #d4c2c4;
     --surface-line: rgb(199 166 106 / 0.3);
+    --surface-control: rgb(224 200 148 / 0.6);
     --surface-card: rgb(0 0 0 / 0.25);
     --surface-input: rgb(255 255 255 / 0.06);
+    --acento: var(--color-champagne);
+    --foco: var(--color-champagne);
   }
 
   [data-surface] {
@@ -97,7 +109,8 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-champagne);
+    /* En superficies claras el champagne queda invisible: se usa el acento local. */
+    outline: 2px solid var(--foco, var(--color-champagne));
     outline-offset: 3px;
   }
 
@@ -117,7 +130,8 @@
   letter-spacing: 0.34em;
   text-transform: uppercase;
   font-weight: 500;
-  color: var(--color-champagne);
+  /* El champagne sólo contrasta sobre fondo oscuro; en claro toma el vino. */
+  color: var(--acento, var(--color-champagne));
 }
 
 @utility rule-thin {

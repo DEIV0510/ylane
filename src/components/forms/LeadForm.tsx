@@ -30,7 +30,12 @@ export function LeadForm({
 
   if (estado?.ok) {
     return (
-      <div className="border border-champagne/40 p-8 text-center">
+      <div
+        role="status"
+        tabIndex={-1}
+        ref={(nodo) => nodo?.focus()}
+        className="border border-champagne/40 p-8 text-center outline-none"
+      >
         <span className="mx-auto block size-2 rotate-45 bg-champagne" aria-hidden="true" />
         <p className="mt-5 font-[family-name:var(--font-display)] text-xl">¡Gracias!</p>
         <p className="mt-2 text-[0.9rem] text-[var(--surface-muted)]">{mensajeExito}</p>
@@ -64,7 +69,7 @@ export function LeadForm({
               rows={4}
               maxLength={1500}
               placeholder={campo.placeholder}
-              className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)]/70 focus:border-champagne"
+              className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)] focus:border-champagne"
             />
           ) : (
             <input
@@ -72,13 +77,17 @@ export function LeadForm({
               type={campo.tipo ?? 'text'}
               required={campo.requerido}
               placeholder={campo.placeholder}
-              className="w-full border border-[var(--surface-line)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)]/70 focus:border-champagne"
+              className="w-full border border-[var(--surface-control)] bg-[var(--surface-input)] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[var(--surface-muted)] focus:border-champagne"
             />
           )}
         </label>
       ))}
 
-      {estado && !estado.ok && <p className="text-sm text-red-300 sm:col-span-2">{estado.error}</p>}
+      {estado && !estado.ok && (
+        <p role="alert" className="text-sm text-red-300 sm:col-span-2">
+          {estado.error}
+        </p>
+      )}
 
       <div className="sm:col-span-2">
         <Button type="submit" tamano="lg" disabled={pendiente}>

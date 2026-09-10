@@ -246,13 +246,18 @@ async function seedProducts(marcas: Map<string, number>, cats: Map<string, numbe
   for (const [indice, item] of catalogo.productos.entries()) {
     const marcaId = item.marca ? (marcas.get(item.marca) ?? null) : null;
     const existente = await db.select().from(products).where(eq(products.codigo, item.codigo)).get();
+    const existentePrevio = existente;
     const buscador = textoBuscador([
       item.codigo,
-      item.nombre,
+      item.nombre !== item.codigo ? item.nombre : (existentePrevio?.nombre ?? item.nombre),
       item.marca,
       ETIQUETA_GENERO[item.genero],
       item.tipo ? ETIQUETA_TIPO[item.tipo] : null,
     ]);
+
+    // Si en el Excel la fila no trae nombre, el importador usa el código como
+    // provisional. En ese caso NO se pisa lo que el negocio ya corrigió en /admin.
+    const nombreDelExcel = item.nombre !== item.codigo;
 
     let productId: number;
     if (existente) {
@@ -260,7 +265,7 @@ async function seedProducts(marcas: Map<string, number>, cats: Map<string, numbe
       await db
         .update(products)
         .set({
-          nombre: item.nombre,
+          nombre: nombreDelExcel ? item.nombre : existente.nombre,
           genero: item.genero,
           marcaId: existente.marcaId ?? marcaId,
           tipo: existente.tipo ?? item.tipo,
@@ -271,11 +276,20 @@ async function seedProducts(marcas: Map<string, number>, cats: Map<string, numbe
       productId = existente.id;
       actualizados += 1;
     } else {
+      // El slug del importador puede chocar con el de una referencia creada
+      // desde el panel: se busca uno libre en vez de reventar con UNIQUE.
+      let slug = item.slug;
+      let intento = 2;
+      while (await db.select({ id: products.id }).from(products).where(eq(products.slug, slug)).get()) {
+        slug = `${item.slug}-${intento}`;
+        intento += 1;
+      }
+
       const creado = await db
         .insert(products)
         .values({
           codigo: item.codigo,
-          slug: item.slug,
+          slug,
           nombre: item.nombre,
           genero: item.genero,
           marcaId,

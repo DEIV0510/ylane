@@ -37,7 +37,7 @@ export function AddToCartButton({
     return (
       <Link
         href={`/perfumes/${producto.slug}`}
-        className={`inline-flex w-full items-center justify-center border border-current/30 px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] transition-colors hover:border-champagne hover:text-champagne ${className}`}
+        className={`inline-flex min-h-11 w-full items-center justify-center border border-current/30 px-4 py-2.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] transition-colors hover:border-champagne hover:text-champagne ${className}`}
       >
         Ver detalles
       </Link>

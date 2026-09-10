@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { brands, productImages, products } from '@/db/schema';
 
@@ -125,10 +125,17 @@ export async function recomendar(respuestas: Respuestas, limite = 8) {
   const ids = elegidas.map((item) => item.fila.id);
   const imagenes = new Map<number, string>();
   if (ids.length) {
+    // Mismo orden que el catálogo: primero la principal, luego la secundaria.
+    // Sin este ORDER BY podía salir una foto de "notas" o "lifestyle" en la tarjeta.
     const filasImagen = await db
       .select({ productId: productImages.productId, url: productImages.url })
       .from(productImages)
       .where(inArray(productImages.productId, ids))
+      .orderBy(
+        sql`case ${productImages.tipo} when 'principal' then 0 when 'secundaria' then 1 else 2 end`,
+        asc(productImages.orden),
+        asc(productImages.id),
+      )
       .all();
     for (const imagen of filasImagen) {
       if (!imagenes.has(imagen.productId)) imagenes.set(imagen.productId, imagen.url);

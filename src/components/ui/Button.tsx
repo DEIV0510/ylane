@@ -11,7 +11,7 @@ const VARIANTES: Record<Variante, string> = {
   principal:
     'bg-vino text-marfil border border-vino hover:bg-vino-glow hover:border-vino-glow active:translate-y-px',
   contorno:
-    'border border-current/35 text-current hover:border-champagne hover:text-champagne active:translate-y-px',
+    'border border-[var(--surface-control)] text-current hover:border-[var(--acento)] hover:text-[var(--acento)] active:translate-y-px',
   suave: 'bg-champagne text-noir border border-champagne hover:bg-champagne-soft active:translate-y-px',
   texto: 'text-current underline-offset-4 hover:text-champagne hover:underline px-0',
 };
