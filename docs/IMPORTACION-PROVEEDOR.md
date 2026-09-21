@@ -1,6 +1,6 @@
 # Informe de importación — catálogo del proveedor
 
-Generado por `npm run importar:proveedor` el 20/9/2026, 10:07:27 p. m..
+Generado por `npm run importar:proveedor` el 21/9/2026, 12:49:13 a. m..
 
 > Este informe se publica en el repositorio, así que **no incluye precios de
 > compra, márgenes, URLs ni el nombre del proveedor**. Esos datos sólo viven en
@@ -12,12 +12,12 @@ Generado por `npm run importar:proveedor` el 20/9/2026, 10:07:27 p. m..
 | --- | --- |
 | Filas leídas | 308 |
 | Referencias válidas | 308 |
-| Creadas en esta ejecución | 0 |
-| Actualizadas (ya existían) | 308 |
+| Creadas en esta ejecución | 308 |
+| Actualizadas (ya existían) | 0 |
 | Filas inválidas | 0 |
 | Referencias repetidas descartadas | 0 |
 | Margen incoherente con los precios | 0 |
-| Referencias del primer Excel ocultadas | 0 |
+| Referencias del primer Excel ocultadas | 257 |
 
 ## Qué se tomó del archivo tal cual
 
