@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { guardarPreciosMasivo } from '@/app/actions/admin';
 import { Aviso, SubmitButton } from './ui';
+import { formatCOP } from '@/lib/format';
 
 type Fila = {
   id: number;
@@ -12,6 +13,7 @@ type Fila = {
   marca: string | null;
   precio: number | null;
   precioAnterior: number | null;
+  costo: number | null;
   stock: number | null;
 };
 
@@ -48,13 +50,15 @@ export function TablaPrecios({
       <Aviso estado={estado} />
 
       <div className="overflow-x-auto border border-[var(--surface-line)]">
-        <table className="w-full min-w-[48rem] text-left text-[0.84rem]">
+        <table className="w-full min-w-[60rem] text-left text-[0.84rem]">
           <thead className="border-b border-[var(--surface-line)] text-[0.6rem] uppercase tracking-[0.16em] text-[var(--surface-muted)]">
             <tr>
               <th className="px-3 py-3 font-medium">Referencia</th>
               <th className="px-3 py-3 font-medium">Marca</th>
               <th className="w-36 px-3 py-3 font-medium">Precio (COP)</th>
               <th className="w-36 px-3 py-3 font-medium">Precio anterior</th>
+              <th className="w-36 px-3 py-3 font-medium">Costo</th>
+              <th className="w-28 px-3 py-3 font-medium">Margen</th>
               <th className="w-28 px-3 py-3 font-medium">Stock</th>
             </tr>
           </thead>
@@ -87,6 +91,19 @@ export function TablaPrecios({
                     aria-label={`Precio anterior de ${fila.nombre}`}
                     className="w-full border border-[var(--surface-line)] bg-[var(--surface-card)] px-2 py-1.5 text-sm outline-none focus:border-vino"
                   />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    name={`costo_${fila.id}`}
+                    defaultValue={fila.costo ?? ''}
+                    inputMode="numeric"
+                    placeholder="—"
+                    aria-label={`Costo de ${fila.nombre}`}
+                    className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-2 py-1.5 text-sm outline-none focus:border-vino"
+                  />
+                </td>
+                <td className="px-3 py-2 text-[var(--surface-muted)]">
+                  {fila.precio != null && fila.costo != null ? formatCOP(fila.precio - fila.costo) : '—'}
                 </td>
                 <td className="px-3 py-2">
                   <input

@@ -161,6 +161,15 @@ const APERTURAS = {
     '{nombre} llega a la selección unisex de YLANE para quien busca algo distinto a lo habitual.',
     'En fragancias compartidas, {nombre} es una de las referencias que YLANE tiene en catálogo.',
   ],
+  // Sin género confirmado: el texto no puede afirmar para quién es.
+  NEUTRO: [
+    '{nombre} forma parte de la selección de YLANE PERFUMES, pensada para quien quiere una firma propia.',
+    'Dentro del catálogo de YLANE, {nombre} es una elección para quien entiende el perfume como parte de su presencia.',
+    '{nombre} es una de las fragancias que YLANE mantiene en catálogo para quienes buscan carácter.',
+    'Para quien busca una fragancia con personalidad, {nombre} es una de las referencias disponibles en YLANE.',
+    '{nombre} llega a la selección de YLANE para quien prefiere que su aroma hable primero.',
+    '{nombre} es una de las referencias que YLANE tiene en catálogo.',
+  ],
 };
 
 const CONTEXTO_TIPO = {
@@ -208,6 +217,13 @@ const PERFILES = {
     'Va bien con quien colecciona fragancias y busca variedad.',
     'Pensada para quien quiere un aroma que funcione en cualquier ocasión.',
   ],
+  NEUTRO: [
+    'Es una opción para quien quiere una fragancia que lo represente.',
+    'Funciona para quien busca un aroma reconocible.',
+    'Es una elección para quien arma su propia firma.',
+    'Va bien con quien disfruta descubrir fragancias nuevas.',
+    'Pensada para quien usa el perfume como parte de su estilo.',
+  ],
 };
 
 const CIERRES = [
@@ -233,6 +249,11 @@ const CORTAS = {
     'Perfumería unisex seleccionada por YLANE.',
     'Una fragancia sin género dentro del catálogo YLANE.',
   ],
+  NEUTRO: [
+    'Fragancia de la selección YLANE.',
+    'Perfumería seleccionada por YLANE.',
+    'Una firma dentro del catálogo YLANE.',
+  ],
 };
 
 /** Hash estable (no criptográfico) para escoger variantes de forma determinista. */
@@ -250,16 +271,16 @@ const pick = (list, seed, offset = 0) => list[(seed + offset) % list.length];
 export function generarDescripcion({ codigo, nombre, genero, tipo, marca }) {
   const seed = hash(codigo + nombre);
   const partes = [];
-  partes.push(pick(APERTURAS[genero] ?? APERTURAS.UNISEX, seed).replace('{nombre}', nombre));
+  partes.push(pick(APERTURAS[genero] ?? APERTURAS.NEUTRO, seed).replace('{nombre}', nombre));
   if (tipo && CONTEXTO_TIPO[tipo]) partes.push(pick(CONTEXTO_TIPO[tipo], seed, 3));
   else if (marca) partes.push(`Referencia de ${marca} dentro del catálogo de YLANE PERFUMES.`);
-  partes.push(pick(PERFILES[genero] ?? PERFILES.UNISEX, seed, 5));
+  partes.push(pick(PERFILES[genero] ?? PERFILES.NEUTRO, seed, 5));
   partes.push(pick(CIERRES, seed, 7));
   return partes.join(' ');
 }
 
 export function generarDescripcionCorta({ codigo, nombre, genero, marca }) {
   const seed = hash(codigo + nombre + 'corta');
-  const base = pick(CORTAS[genero] ?? CORTAS.UNISEX, seed);
+  const base = pick(CORTAS[genero] ?? CORTAS.NEUTRO, seed);
   return marca ? `${marca} · ${base}` : base;
 }

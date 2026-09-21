@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { and, asc, count, desc, eq, isNull, like, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, isNotNull, isNull, like, sql, type SQL } from 'drizzle-orm';
 import { db } from '@/db';
 import { brands, productImages, products } from '@/db/schema';
-import { formatCOP, GENERO_ETIQUETA } from '@/lib/format';
+import { formatCOP, GENERO_ETIQUETA_ADMIN, GENERO_SIN_ASIGNAR } from '@/lib/format';
 import { normalizar } from '@/lib/text';
 import { AccionesProducto } from '@/components/admin/AccionesProducto';
 
@@ -37,6 +37,9 @@ export default async function ProductosAdminPage({ searchParams }: { searchParam
   if (params.filtro === 'destacados') condiciones.push(eq(products.destacado, true));
   if (params.filtro === 'bestsellers') condiciones.push(eq(products.bestseller, true));
   if (params.filtro === 'sin-marca') condiciones.push(isNull(products.marcaId));
+  if (params.filtro === 'sin-genero') condiciones.push(eq(products.genero, GENERO_SIN_ASIGNAR));
+  if (params.filtro === 'anterior') condiciones.push(isNull(products.proveedorRef));
+  if (params.filtro === 'proveedor') condiciones.push(isNotNull(products.proveedorRef));
   if (params.revisar === '1') condiciones.push(eq(products.requiereRevision, true));
   if (params.marca) condiciones.push(eq(brands.slug, params.marca));
 
@@ -51,6 +54,7 @@ export default async function ProductosAdminPage({ searchParams }: { searchParam
         nombre: products.nombre,
         genero: products.genero,
         precio: products.precio,
+        costo: products.costo,
         stock: products.stock,
         activo: products.activo,
         destacado: products.destacado,
@@ -161,7 +165,10 @@ export default async function ProductosAdminPage({ searchParams }: { searchParam
           >
             <option value="">Sin filtro</option>
             <option value="sin-precio">Sin precio</option>
+            <option value="sin-genero">Sin género</option>
             <option value="sin-marca">Sin marca</option>
+            <option value="proveedor">Catálogo del proveedor</option>
+            <option value="anterior">Primer catálogo (oculto)</option>
             <option value="destacados">Destacados</option>
             <option value="bestsellers">Best sellers</option>
           </select>
@@ -209,6 +216,7 @@ export default async function ProductosAdminPage({ searchParams }: { searchParam
               <th className="px-3 py-3 font-medium">Marca</th>
               <th className="px-3 py-3 font-medium">Género</th>
               <th className="px-3 py-3 font-medium">Precio</th>
+              <th className="px-3 py-3 font-medium">Margen</th>
               <th className="px-3 py-3 font-medium">Stock</th>
               <th className="px-3 py-3 font-medium">Estado</th>
               <th className="px-3 py-3 text-right font-medium">Acciones</th>
@@ -243,10 +251,17 @@ export default async function ProductosAdminPage({ searchParams }: { searchParam
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-[var(--surface-muted)]">{fila.marca ?? '—'}</td>
-                <td className="px-3 py-2.5 text-[var(--surface-muted)]">
-                  {GENERO_ETIQUETA[fila.genero]}
+                <td
+                  className={`px-3 py-2.5 ${
+                    fila.genero === GENERO_SIN_ASIGNAR ? 'text-vino' : 'text-[var(--surface-muted)]'
+                  }`}
+                >
+                  {GENERO_ETIQUETA_ADMIN[fila.genero] ?? fila.genero}
                 </td>
                 <td className="px-3 py-2.5">{formatCOP(fila.precio) ?? '—'}</td>
+                <td className="px-3 py-2.5 text-[var(--surface-muted)]">
+                  {fila.precio != null && fila.costo != null ? formatCOP(fila.precio - fila.costo) : '—'}
+                </td>
                 <td className="px-3 py-2.5">{fila.stock ?? '—'}</td>
                 <td className="px-3 py-2.5">
                   <span className="flex flex-wrap gap-1">

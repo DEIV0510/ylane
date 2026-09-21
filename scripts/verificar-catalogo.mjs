@@ -16,6 +16,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSheetRows } from './lib/xlsx.mjs';
+import { leerCatalogoProveedor, referenciaDesdeUrl } from './lib/proveedor.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const excel = join(root, 'data', 'catalogo-ylane.xlsx');
@@ -66,8 +67,12 @@ const cliente = createClient({
 });
 
 const { rows: productos } = await cliente.execute(
-  'select codigo, nombre, genero, slug, precio, stock, familia_olfativa, concentracion, notas_salida, notas_corazon, notas_fondo, origen_pais, duracion, activo from products',
+  `select p.codigo, p.nombre, p.genero, p.slug, p.precio, p.costo, p.stock, p.familia_olfativa, p.concentracion,
+          p.notas_salida, p.notas_corazon, p.notas_fondo, p.origen_pais, p.duracion, p.activo,
+          p.proveedor_ref, b.nombre as marca
+     from products p left join brands b on b.id = p.marca_id`,
 );
+const delPrimerExcel = productos.filter((p) => p.proveedor_ref == null);
 
 console.log(`\nExcel: ${referencias.length} referencias · Base de datos: ${productos.length}\n`);
 
@@ -85,7 +90,7 @@ comprobar(
 );
 
 const codigosExcel = new Set(referencias.map((r) => r.codigo));
-const sobrantes = productos.filter((p) => !codigosExcel.has(p.codigo));
+const sobrantes = delPrimerExcel.filter((p) => !codigosExcel.has(p.codigo));
 if (sobrantes.length) {
   avisos.push(
     `${sobrantes.length} referencias en la base no vienen del Excel (creadas desde el panel): ${sobrantes
@@ -159,7 +164,7 @@ const CAMPOS_SENSIBLES = [
 // que venir del panel, nunca de la importación. Se informa cuántos hay cargados.
 const cargados = CAMPOS_SENSIBLES.map((campo) => ({
   campo,
-  total: productos.filter((p) => p[campo] != null && p[campo] !== '').length,
+  total: delPrimerExcel.filter((p) => p[campo] != null && p[campo] !== '').length,
 }));
 
 const resumen = cargados
@@ -184,6 +189,56 @@ comprobar(
     .join(', '),
 );
 
+/* ── 5. Catálogo del proveedor (si el archivo está en esta máquina) ── */
+const archivoProveedor = join(root, 'data', 'catalogo-proveedor.xlsx');
+if (existsSync(archivoProveedor)) {
+  console.log('\nCatálogo del proveedor');
+  const filasProveedor = leerCatalogoProveedor(archivoProveedor);
+  const porRef = new Map(productos.filter((p) => p.proveedor_ref).map((p) => [p.proveedor_ref, p]));
+
+  const faltan = filasProveedor.filter((f) => !porRef.has(referenciaDesdeUrl(f.url)));
+  comprobar(
+    `Las ${filasProveedor.length} referencias del proveedor están en la base`,
+    faltan.length === 0,
+    faltan.map((f) => f.producto).join(', '),
+  );
+
+  const distintas = (campo, esperado) =>
+    filasProveedor
+      .map((f) => ({ f, p: porRef.get(referenciaDesdeUrl(f.url)) }))
+      .filter(({ f, p }) => p && p[campo] !== esperado(f));
+
+  const nombres = distintas('nombre', (f) => f.producto);
+  comprobar(
+    'Los nombres coinciden exactamente con el archivo del proveedor',
+    nombres.length === 0,
+    nombres.map(({ f, p }) => `${p.codigo}: "${f.producto}" ≠ "${p.nombre}"`).join(' | '),
+  );
+
+  const marcas = distintas('marca', (f) => f.marca);
+  if (marcas.length) {
+    avisos.push(`${marcas.length} referencias con marca distinta a la del proveedor (reasignadas en el panel)`);
+  }
+
+  const costos = distintas('costo', (f) => f.partner);
+  if (costos.length) avisos.push(`${costos.length} costos editados en el panel respecto al archivo`);
+
+  const precios = distintas('precio', (f) => f.sugerido);
+  if (precios.length) avisos.push(`${precios.length} precios publicados distintos del sugerido (editados en el panel)`);
+
+  const sinCosto = productos.filter((p) => p.proveedor_ref && p.costo == null);
+  comprobar('Toda referencia del proveedor conserva su costo', sinCosto.length === 0, sinCosto.map((p) => p.codigo).join(', '));
+
+  const perdida = productos.filter((p) => p.proveedor_ref && p.precio != null && p.costo != null && p.precio < p.costo);
+  comprobar(
+    'Ningún precio publicado queda por debajo del costo',
+    perdida.length === 0,
+    perdida.map((p) => `${p.codigo} (precio ${p.precio} < costo ${p.costo})`).join(', '),
+  );
+} else {
+  console.log('\n  · data/catalogo-proveedor.xlsx no está en esta máquina: se omite su verificación.');
+}
+
 /* ── Resultado ────────────────────────────────────────────────────── */
 console.log('');
 for (const aviso of avisos) console.log(`  ! ${aviso}`);
@@ -193,4 +248,4 @@ if (errores.length) {
   process.exit(1);
 }
 
-console.log(`\n✓ ${comprobaciones} comprobaciones superadas. El catálogo es fiel al Excel.\n`);
+console.log(`\n✓ ${comprobaciones} comprobaciones superadas. El catálogo es fiel a sus archivos de origen.\n`);

@@ -22,6 +22,7 @@ export default async function DashboardPage() {
     sinImagen,
     stockBajo,
     porRevisar,
+    sinGenero,
     totalClientes,
     resenasPendientes,
     solicitudesNuevas,
@@ -53,6 +54,11 @@ export default async function DashboardPage() {
       .where(and(isNotNull(products.stock), lte(products.stock, sql`coalesce(${products.stockMinimo}, 3)`)))
       .get(),
     db.select({ total: count() }).from(products).where(eq(products.requiereRevision, true)).get(),
+    db
+      .select({ total: count() })
+      .from(products)
+      .where(and(eq(products.genero, 'SIN_GENERO'), eq(products.activo, true)))
+      .get(),
     db.select({ total: count() }).from(customers).get(),
     db.select({ total: count() }).from(reviews).where(eq(reviews.estado, 'pendiente')).get(),
     db.select({ total: count() }).from(leads).where(eq(leads.atendido, false)).get(),
@@ -93,6 +99,11 @@ export default async function DashboardPage() {
       texto: 'Falta configurar el número de WhatsApp. Mientras esté vacío, los botones de WhatsApp no aparecen en la tienda.',
       href: '/admin/configuracion',
       accion: 'Configurar',
+    },
+    (sinGenero?.total ?? 0) > 0 && {
+      texto: `${sinGenero?.total} referencias activas no tienen género: salen en el catálogo, pero no en Hombre, Mujer ni Unisex.`,
+      href: '/admin/productos/generos',
+      accion: 'Asignar género',
     },
     (sinPrecio?.total ?? 0) > 0 && {
       texto: `${sinPrecio?.total} referencias todavía no tienen precio publicado.`,

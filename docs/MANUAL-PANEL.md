@@ -21,15 +21,18 @@ Mientras esté vacío, los botones de WhatsApp **no aparecen** en la tienda. Lo 
 a propósito: preferimos ocultar el botón antes que dejar uno que no funcione. En cuanto lo
 guardes, aparecen el botón flotante, el de cada producto y el del carrito.
 
-### 2. Carga los precios
+### 2. Revisa los precios
 
 **Productos → Precios y stock**
 
-Es una tabla para escribir precios rápido, 50 referencias por página.
+Las 308 referencias del proveedor se publicaron con **su precio sugerido**. Cámbialo
+donde quieras: es una tabla para escribir rápido, 50 referencias por página.
 
 - **Precio**: sólo números, sin puntos ni signo de peso. `189000`.
-- **Precio anterior**: llénalo **sólo si hay un descuento real**. La tienda calcula el
-  porcentaje y muestra la etiqueta de oferta automáticamente.
+- **Precio anterior**: llénalo **sólo si hay un descuento real**. Tiene que ser mayor que
+  el precio. La tienda calcula el porcentaje y muestra la etiqueta de oferta sola.
+- **Costo**: lo que te cuesta la referencia (el precio partner del proveedor).
+  **Nunca se muestra en la tienda**; sólo sirve para calcular la columna **Margen**.
 - **Stock**: si lo dejas vacío, la tienda no muestra disponibilidad y la referencia siempre
   se puede pedir. Si escribes un número, se controla el inventario.
 
@@ -38,7 +41,21 @@ Recuerda pulsar **Guardar cambios de esta página** antes de pasar a la siguient
 > Una referencia sin precio no se puede agregar al carrito: en su lugar la tienda muestra
 > «Precio por confirmar» y un botón para consultarla. Es correcto y es intencional.
 
-### 3. Sube las fotos
+### 3. Asigna el género que falta
+
+**Productos → Asignar género**
+
+El archivo del proveedor no dice si un perfume es de hombre, de mujer o unisex. Lo
+dedujimos sólo cuando era seguro (el nombre dice «Pour Homme», «Woman»… o el perfume ya
+estaba en tu primer Excel con ese género). El resto quedó **sin asignar**.
+
+Una referencia sin género **se vende normalmente** y sale en el catálogo, en su marca y en
+el buscador, pero **no aparece en Hombre, Mujer ni Unisex** hasta que se lo pongas.
+
+La pantalla agrupa las referencias por marca: marca las casillas (o la marca entera),
+elige el género y pulsa **Asignar**. El Resumen te recuerda cuántas quedan.
+
+### 4. Sube las fotos
 
 **Productos → (busca la referencia) → Imágenes**
 
@@ -50,7 +67,7 @@ Sube el archivo, elige el tipo y pulsa *Agregar imagen*.
 Mientras una referencia no tenga foto, se muestra un marcador con la identidad de YLANE.
 No es una foto genérica repetida: cada una tiene su propio tono.
 
-### 4. Completa los textos legales
+### 5. Completa los textos legales
 
 **Contenido → Legal**
 
@@ -116,7 +133,8 @@ Vista rápida de lo que está bajo mínimos o agotado, y el valor del inventario
 Los campos están agrupados:
 
 - **Identificación**: código, nombre, género, marca y clasificación.
-- **Precio e inventario**.
+- **Precio e inventario**: precio, precio anterior, costo (con el margen calculado al lado)
+  y stock.
 - **Descripción**: la corta sale en las tarjetas; la larga en la ficha.
 - **Ficha técnica**: familia olfativa, concentración, presentación, notas, duración, origen.
   **Sólo se muestra en la tienda lo que rellenes.** Deja vacío lo que no tengas confirmado.
@@ -129,15 +147,30 @@ Los campos están agrupados:
 | Bandera | Dónde aparece |
 | --- | --- |
 | **Publicado** | Si lo apagas, la referencia desaparece de la tienda pero no se borra. |
-| **Destacado** | Sección «Selección YLANE» de la portada. |
+| **Destacado** | Sección «Selección YLANE» de la portada. Aparece cuando marcas **al menos 4**. |
 | **Best seller** | Etiqueta en la tarjeta y colección Best Sellers. Márcalo sólo si de verdad lo es. |
 | **Novedad** | Etiqueta «Nuevo» y colección Novedades. |
 
 ### Marcas
 
-**Marcas** — sólo asignamos automáticamente la marca cuando aparecía escrita en el nombre
-del Excel. Las referencias que quedaron sin marca aparecen arriba en un bloque: puedes
-seleccionar varias y asignarles una marca de una sola vez.
+**Marcas** — las referencias del proveedor traen su marca. Si cambias la **clasificación**
+de una marca (por ejemplo, la pasas a «Árabe»), sus referencias la heredan, salvo las que
+hayas clasificado a mano de otra forma.
+
+Tres marcas del proveedor quedaron **sin clasificar** porque no lo sabíamos con certeza:
+Dumont, Jo Milano e Ilmin. Y hay marcas que el proveedor escribe de dos maneras (Armani /
+Giorgio Armani / Emporio Armani, Dior / Miss Dior, Tommy Hilfiger / Tommy Girl): si
+quieres unificarlas, selecciona las referencias y asígnales la marca de una sola vez.
+
+### El catálogo del proveedor
+
+En **Productos** puedes filtrar por origen: *del proveedor* (las 308 que se venden) o *del
+primer Excel* (las 259 anteriores, ocultas pero no borradas). En cada ficha del proveedor
+hay un enlace **Ficha del proveedor ↗**, visible sólo en el panel.
+
+Cuando el proveedor mande una lista nueva, se reimporta sin duplicar y **sin pisar lo que
+editaste aquí** (precio publicado, nombre, género, fotos): sólo se actualiza el costo, y
+las referencias que el proveedor marque como no disponibles se despublican.
 
 ### Categorías
 

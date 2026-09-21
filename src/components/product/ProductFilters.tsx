@@ -37,6 +37,8 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
       tipo: parametros.getAll('tipo'),
       familia: parametros.getAll('familia'),
       disponibles: parametros.get('disponibles') === '1',
+      precioMin: parametros.get('precioMin') ?? '',
+      precioMax: parametros.get('precioMax') ?? '',
       orden: parametros.get('orden') ?? '',
       q: parametros.get('q') ?? '',
     }),
@@ -77,11 +79,14 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
     seleccion.marca.length +
     seleccion.tipo.length +
     seleccion.familia.length +
-    (seleccion.disponibles ? 1 : 0);
+    (seleccion.disponibles ? 1 : 0) +
+    (seleccion.precioMin || seleccion.precioMax ? 1 : 0);
 
   const limpiar = () =>
     actualizar((params) => {
-      for (const clave of ['genero', 'marca', 'tipo', 'familia', 'disponibles']) params.delete(clave);
+      for (const clave of ['genero', 'marca', 'tipo', 'familia', 'disponibles', 'precioMin', 'precioMax']) {
+        params.delete(clave);
+      }
     });
 
   const panel = (
@@ -142,25 +147,51 @@ export function ProductFilters({ facetas, total, bloqueadas = [] }: Props) {
         </Grupo>
       )}
 
-      <Grupo titulo="Disponibilidad">
-        <Casilla
-          etiqueta="Sólo con stock disponible"
-          activo={seleccion.disponibles}
-          onChange={() =>
-            actualizar((params) => {
-              if (seleccion.disponibles) params.delete('disponibles');
-              else params.set('disponibles', '1');
-            })
-          }
-        />
-      </Grupo>
+      {(facetas.conStock > 0 || seleccion.disponibles) && (
+        <Grupo titulo="Disponibilidad">
+          <Casilla
+            etiqueta="Sólo con stock disponible"
+            activo={seleccion.disponibles}
+            onChange={() =>
+              actualizar((params) => {
+                if (seleccion.disponibles) params.delete('disponibles');
+                else params.set('disponibles', '1');
+              })
+            }
+          />
+        </Grupo>
+      )}
 
-      {facetas.precio.min != null && facetas.precio.max != null && (
+      {facetas.rangosPrecio.length > 0 && (
         <Grupo titulo="Precio">
-          <p className="text-[0.78rem] text-[var(--surface-muted)]">
-            {facetas.conPrecio} referencias con precio publicado, entre{' '}
-            {formatCOP(facetas.precio.min)} y {formatCOP(facetas.precio.max)}.
-          </p>
+          {facetas.rangosPrecio.map((tramo) => {
+            const activo =
+              seleccion.precioMin === (tramo.min != null ? String(tramo.min) : '') &&
+              seleccion.precioMax === (tramo.max != null ? String(tramo.max) : '');
+            return (
+              <Casilla
+                key={tramo.etiqueta}
+                etiqueta={tramo.etiqueta}
+                total={tramo.total}
+                activo={activo}
+                onChange={() =>
+                  actualizar((params) => {
+                    params.delete('precioMin');
+                    params.delete('precioMax');
+                    // Un solo tramo a la vez: volver a pulsarlo lo quita.
+                    if (activo) return;
+                    if (tramo.min != null) params.set('precioMin', String(tramo.min));
+                    if (tramo.max != null) params.set('precioMax', String(tramo.max));
+                  })
+                }
+              />
+            );
+          })}
+          {facetas.precio.min != null && facetas.precio.max != null && (
+            <p className="pt-1 text-[0.72rem] text-[var(--surface-muted)]">
+              Desde {formatCOP(facetas.precio.min)} hasta {formatCOP(facetas.precio.max)}.
+            </p>
+          )}
         </Grupo>
       )}
 

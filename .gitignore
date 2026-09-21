@@ -18,3 +18,9 @@ public/uploads/*
 .DS_Store
 Thumbs.db
 *.log
+
+# Datos confidenciales del negocio: el repositorio es PÚBLICO.
+# El catálogo del proveedor trae precio de compra, margen y URLs del proveedor.
+data/catalogo-proveedor.xlsx
+data/catalogo-proveedor*.json
+data/respaldos/

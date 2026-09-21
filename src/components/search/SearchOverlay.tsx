@@ -185,7 +185,7 @@ export function SearchOverlay({ abierto, onCerrar }: { abierto: boolean; onCerra
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[0.58rem] uppercase tracking-[0.2em] text-champagne/80">
-                          {item.marca ?? GENERO_ETIQUETA[item.genero]} · {item.codigo}
+                          {[item.marca ?? GENERO_ETIQUETA[item.genero], item.codigo].filter(Boolean).join(' · ')}
                         </span>
                         <span className="block truncate font-[family-name:var(--font-display)] text-base transition-colors group-hover:text-champagne">
                           {item.nombre}

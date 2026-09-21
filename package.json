@@ -14,7 +14,9 @@
     "import:excel": "node scripts/import-excel.mjs",
     "test": "node --env-file-if-exists=.env.local scripts/verificar-catalogo.mjs",
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
-    "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate"
+    "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
+    "importar:proveedor": "node --env-file-if-exists=.env.local scripts/importar-proveedor.ts",
+    "verificar:fuga": "node --env-file-if-exists=.env.local scripts/verificar-fuga.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",

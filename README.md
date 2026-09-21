@@ -45,7 +45,9 @@ desde el código.
 | --- | --- |
 | `npm run dev` | Servidor de desarrollo en el puerto 5331. |
 | `npm run build` / `npm start` | Compilación y arranque de producción. |
-| `npm test` | Comprueba que el catálogo de la base sigue siendo fiel al Excel. |
+| `npm test` | Comprueba que la base sigue siendo fiel a los dos catálogos. |
+| `npm run verificar:fuga` | Con el servidor en marcha: ningún costo ni dato del proveedor llega a la tienda. |
+| `npm run importar:proveedor` | Importa o actualiza el catálogo del proveedor (`data/catalogo-proveedor.xlsx`). |
 | `npm run db:generate` | Genera el archivo de migración SQL tras cambiar `src/db/schema.ts`. |
 | `npm run db:migrate` | **Aplica las migraciones. Es el comando de producción.** |
 | `npm run db:push` | Sincroniza el esquema sin migración. **Sólo desarrollo** (ver aviso). |
@@ -61,7 +63,47 @@ desde el código.
 
 ---
 
-## El catálogo viene del Excel del negocio
+## El catálogo activo viene del proveedor
+
+Desde septiembre de 2026 la tienda vende el **catálogo del proveedor** (308
+referencias con marca, precio sugerido, costo y disponibilidad). El primer Excel
+del negocio (259 referencias) se conserva en la base **oculto, no borrado**.
+
+```bash
+# El archivo va en data/catalogo-proveedor.xlsx — NO se sube al repositorio
+npm run importar:proveedor
+```
+
+> **El repositorio es público.** El archivo del proveedor trae el precio de
+> compra, el margen y la URL del proveedor, así que está en `.gitignore` y el
+> importador escribe directo en la base, sin JSON intermedio. El informe
+> [`docs/IMPORTACION-PROVEEDOR.md`](docs/IMPORTACION-PROVEEDOR.md) no contiene
+> costos, URLs ni el nombre del proveedor.
+
+Qué toma del archivo tal cual: nombre, marca, precio sugerido (como precio
+publicado) y precio partner (como **costo**, sólo visible en el panel). Qué deduce,
+dejando constancia de la fuente de cada dato:
+
+- **Concentración**: sólo si el nombre la dice ("Eau de Parfum"…).
+- **Género**: el archivo no lo trae. Se asigna si el nombre lo dice ("Pour Homme",
+  "Woman"…) o si el primer Excel trae **ese mismo** perfume con un género
+  inequívoco. Si no, queda **sin asignar**: la referencia se vende igual, pero no
+  aparece en Hombre/Mujer/Unisex hasta que se asigne en *Productos → Asignar género*.
+- **Clasificación** (árabe, nicho…): por marca, con el mapa documentado en
+  `scripts/lib/proveedor.mjs`.
+
+Reimportar una versión nueva es seguro: la llave es la referencia del proveedor,
+así que no duplica, y **no pisa** lo editado en el panel (precio publicado, nombre,
+género, fotos). Sólo refresca el costo y avisa de lo que cambió.
+
+Dos comprobaciones protegen estos datos:
+
+```bash
+npm test                # la base sigue siendo fiel a los dos archivos
+npm run verificar:fuga  # con el servidor corriendo: ningún costo ni dato del proveedor llega a la tienda
+```
+
+## El primer catálogo: el Excel del negocio
 
 El archivo `data/catalogo-ylane.xlsx` es la fuente de verdad. `npm run import:excel` lo
 lee y genera `data/catalogo.json` + un informe en [`docs/IMPORTACION.md`](docs/IMPORTACION.md).
@@ -100,8 +142,9 @@ sin tocar código:
 | Pendiente | Dónde se carga | Qué pasa mientras tanto |
 | --- | --- | --- |
 | **Número de WhatsApp** | Configuración → Contacto | Los botones de WhatsApp **no se muestran** (no se dejan enlaces rotos). |
-| **Precios** | Productos → Precios y stock | Las fichas muestran “Precio por confirmar” y un botón de consulta. |
+| **Género de 213 referencias** | Productos → Asignar género | Se venden, pero no aparecen en Hombre, Mujer ni Unisex. |
 | **Fotografías** | Productos → *(cada referencia)* → Imágenes | Se muestra un marcador propio de la marca, no una foto genérica. |
+| **Revisar precios** | Productos → Precios y stock | Se publicó el precio sugerido del proveedor; cámbialo donde quieras. |
 | **Stock** | Productos → Precios y stock | No se muestra disponibilidad ni urgencia. |
 | **Textos legales** | Contenido → Legal | La página invita a escribir en vez de mostrar texto inventado. |
 | **Envíos** | Configuración → Envíos y Contenido → Envíos | El checkout dice “el envío se coordina contigo”. |
@@ -219,6 +262,7 @@ src/
 
 ## Documentación
 
-- [`docs/IMPORTACION.md`](docs/IMPORTACION.md) — informe de la importación del Excel:
-  qué se dedujo, qué quedó pendiente, marcas detectadas y referencias por revisar.
+- [`docs/IMPORTACION-PROVEEDOR.md`](docs/IMPORTACION-PROVEEDOR.md) — informe del catálogo
+  del proveedor: de dónde salió cada género, qué quedó sin asignar y por qué.
+- [`docs/IMPORTACION.md`](docs/IMPORTACION.md) — informe del primer Excel del negocio.
 - [`docs/MANUAL-PANEL.md`](docs/MANUAL-PANEL.md) — guía del panel para el negocio.

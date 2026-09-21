@@ -38,6 +38,7 @@ export default async function PreciosPage({
         marca: brands.nombre,
         precio: products.precio,
         precioAnterior: products.precioAnterior,
+        costo: products.costo,
         stock: products.stock,
       })
       .from(products)

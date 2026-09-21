@@ -72,6 +72,13 @@ export const products = sqliteTable(
     precio: integer('precio'),
     precioAnterior: integer('precio_anterior'),
     precioMayorista: integer('precio_mayorista'),
+    // CONFIDENCIAL: lo que YLANE paga al proveedor. Nunca sale del panel.
+    costo: integer('costo'),
+
+    // Referencia estable en el proveedor (handle de su tienda) y su URL.
+    // Son la llave para reimportar sin duplicar. Sólo visibles en el panel.
+    proveedorRef: text('proveedor_ref'),
+    proveedorUrl: text('proveedor_url'),
 
     // Inventario. NULL = sin control de stock (no se muestra disponibilidad).
     stock: integer('stock'),
@@ -115,6 +122,8 @@ export const products = sqliteTable(
     index('products_marca_idx').on(t.marcaId),
     index('products_activo_idx').on(t.activo),
     index('products_tipo_idx').on(t.tipo),
+    // Una referencia del proveedor = un producto. Los NULL no chocan entre sí.
+    uniqueIndex('products_proveedor_ref_idx').on(t.proveedorRef),
   ],
 );
 

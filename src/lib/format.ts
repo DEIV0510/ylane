@@ -35,10 +35,23 @@ export function descuentoPct(precio: number | null, anterior: number | null): nu
   return Math.round(((anterior - precio) / anterior) * 100);
 }
 
+/**
+ * Referencias cuyo género no está confirmado (el catálogo del proveedor no lo
+ * trae). No aparecen en Hombre, Mujer ni Unisex, y la tienda no muestra ninguna
+ * etiqueta de género para ellas. Sólo el panel las nombra.
+ */
+export const GENERO_SIN_ASIGNAR = 'SIN_GENERO';
+
 export const GENERO_ETIQUETA: Record<string, string> = {
   DAMA: 'Mujer',
   CABALLERO: 'Hombre',
   UNISEX: 'Unisex',
+};
+
+/** Etiquetas del panel: incluyen el género pendiente. */
+export const GENERO_ETIQUETA_ADMIN: Record<string, string> = {
+  ...GENERO_ETIQUETA,
+  [GENERO_SIN_ASIGNAR]: 'Sin asignar',
 };
 
 export const TIPO_ETIQUETA: Record<string, string> = {

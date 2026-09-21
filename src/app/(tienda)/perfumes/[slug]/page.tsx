@@ -171,8 +171,13 @@ export default async function ProductoPage({ params }: Props) {
           <h1 className="display-lg mt-2">{producto.nombre}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-4 text-[0.72rem] uppercase tracking-[0.16em] text-[var(--surface-muted)]">
-            <span>{GENERO_ETIQUETA[producto.genero]}</span>
-            <span aria-hidden="true">·</span>
+            {/* Sin género confirmado no se muestra ninguno: sería inventarlo. */}
+            {GENERO_ETIQUETA[producto.genero] && (
+              <>
+                <span>{GENERO_ETIQUETA[producto.genero]}</span>
+                <span aria-hidden="true">·</span>
+              </>
+            )}
             <span>Ref. {producto.codigo}</span>
             {producto.rating != null && (
               <>

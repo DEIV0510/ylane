@@ -6,6 +6,7 @@ import {
   count,
   desc,
   eq,
+  getTableColumns,
   gt,
   gte,
   inArray,
@@ -20,6 +21,7 @@ import {
 import { db } from '@/db';
 import { brands, productImages, products, reviews } from '@/db/schema';
 import { normalizar } from './text';
+import { GENERO_SIN_ASIGNAR } from './format';
 
 export type ProductoVista = {
   id: number;
@@ -79,7 +81,7 @@ const columnas = {
 };
 
 /** Condiciones de filtrado. `omitir` deja fuera una dimensión (para las facetas). */
-function condiciones(filtros: Filtros, omitir?: keyof Filtros): SQL[] {
+function condiciones(filtros: Filtros, omitir?: keyof Filtros | 'precio'): SQL[] {
   const lista: SQL[] = [eq(products.activo, true)];
 
   if (filtros.q && omitir !== 'q') {
@@ -99,10 +101,10 @@ function condiciones(filtros: Filtros, omitir?: keyof Filtros): SQL[] {
   if (filtros.familia?.length && omitir !== 'familia') {
     lista.push(inArray(products.familiaOlfativa, filtros.familia));
   }
-  if (filtros.precioMin != null && omitir !== 'precioMin') {
+  if (filtros.precioMin != null && omitir !== 'precioMin' && omitir !== 'precio') {
     lista.push(gte(products.precio, filtros.precioMin));
   }
-  if (filtros.precioMax != null && omitir !== 'precioMax') {
+  if (filtros.precioMax != null && omitir !== 'precioMax' && omitir !== 'precio') {
     lista.push(lte(products.precio, filtros.precioMax));
   }
   if (filtros.disponibles && omitir !== 'disponibles') {
@@ -229,7 +231,23 @@ export type Facetas = {
   familias: { valor: string; total: number }[];
   precio: { min: number | null; max: number | null };
   conPrecio: number;
+  /** Referencias con inventario controlado: sin ellas, filtrar por stock vaciaría el catálogo. */
+  conStock: number;
+  rangosPrecio: { min: number | null; max: number | null; etiqueta: string; total: number }[];
 };
+
+/**
+ * Tramos pensados para precios de perfumería en pesos colombianos.
+ * Cada mínimo empieza un peso por encima del máximo anterior: un perfume de
+ * exactamente $250.000 cae en un solo tramo, no en dos.
+ */
+export const RANGOS_PRECIO: { min: number | null; max: number | null; etiqueta: string }[] = [
+  { min: null, max: 250_000, etiqueta: 'Hasta $250.000' },
+  { min: 250_001, max: 400_000, etiqueta: '$250.000 – $400.000' },
+  { min: 400_001, max: 700_000, etiqueta: '$400.000 – $700.000' },
+  { min: 700_001, max: 1_200_000, etiqueta: '$700.000 – $1.200.000' },
+  { min: 1_200_001, max: null, etiqueta: 'Más de $1.200.000' },
+];
 
 export async function facetas(filtros: Filtros): Promise<Facetas> {
   const [marcasFilas, tiposFilas, generosFilas, familiasFilas, rango] = await Promise.all([
@@ -274,32 +292,59 @@ export async function facetas(filtros: Filtros): Promise<Facetas> {
         min: sql<number | null>`min(${products.precio})`,
         max: sql<number | null>`max(${products.precio})`,
         conPrecio: sql<number>`sum(case when ${products.precio} is not null then 1 else 0 end)`,
+        conStock: sql<number>`sum(case when ${products.stock} is not null then 1 else 0 end)`,
+        // Un contador por tramo, en la misma consulta.
+        ...Object.fromEntries(
+          RANGOS_PRECIO.map((rango, indice) => [
+            `r${indice}`,
+            sql<number>`sum(case when ${products.precio} is not null${
+              rango.min != null ? sql` and ${products.precio} >= ${rango.min}` : sql``
+            }${rango.max != null ? sql` and ${products.precio} <= ${rango.max}` : sql``} then 1 else 0 end)`,
+          ]),
+        ),
       })
       .from(products)
       .leftJoin(brands, eq(products.marcaId, brands.id))
-      .where(and(...condiciones(filtros, 'precioMin')))
+      .where(and(...condiciones(filtros, 'precio')))
       .get(),
   ]);
+
+  const conteoRango = rango as Record<string, unknown> | undefined;
 
   return {
     marcas: marcasFilas.filter((fila): fila is { slug: string; nombre: string; total: number } =>
       Boolean(fila.slug),
     ),
     tipos: tiposFilas.filter((fila): fila is { valor: string; total: number } => Boolean(fila.valor)),
-    generos: generosFilas,
+    generos: generosFilas.filter((fila) => fila.valor !== GENERO_SIN_ASIGNAR),
     familias: familiasFilas.filter((fila): fila is { valor: string; total: number } =>
       Boolean(fila.valor),
     ),
     precio: { min: rango?.min ?? null, max: rango?.max ?? null },
     conPrecio: Number(rango?.conPrecio ?? 0),
+    conStock: Number(rango?.conStock ?? 0),
+    rangosPrecio: RANGOS_PRECIO.map((tramo, indice) => ({
+      ...tramo,
+      total: Number(conteoRango?.[`r${indice}`] ?? 0),
+    })).filter((tramo) => tramo.total > 0),
   };
 }
 
 /* ── Ficha de producto ─────────────────────────────────────────────── */
+
+/*
+ * Columnas que NUNCA salen de la base hacia la tienda: el costo es el precio
+ * de compra del negocio y la referencia/URL delatan al proveedor. Se excluyen
+ * aquí, en la consulta, y no más abajo: lo que no se lee no se puede filtrar
+ * por error a un componente, a los datos estructurados o al payload de React.
+ */
+const { costo: _costo, proveedorRef: _ref, proveedorUrl: _url, ...columnasPublicas } =
+  getTableColumns(products);
+
 export const getProducto = cache(async (slug: string) => {
   const fila = await db
     .select({
-      producto: products,
+      producto: columnasPublicas,
       marca: brands.nombre,
       marcaSlug: brands.slug,
     })

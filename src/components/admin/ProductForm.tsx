@@ -1,14 +1,16 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { guardarProducto } from '@/app/actions/admin';
 import { AreaTexto, Aviso, Campo, Interruptor, Selector, SubmitButton } from './ui';
+import { formatCOP } from '@/lib/format';
 import type { Product } from '@/db/schema';
 
 type Marca = { id: number; nombre: string };
 
 const GENEROS = [
+  { valor: 'SIN_GENERO', etiqueta: 'Sin asignar (no sale en Hombre/Mujer/Unisex)' },
   { valor: 'DAMA', etiqueta: 'Mujer' },
   { valor: 'CABALLERO', etiqueta: 'Hombre' },
   { valor: 'UNISEX', etiqueta: 'Unisex' },
@@ -37,6 +39,13 @@ export function ProductForm({
   marcas: Marca[];
 }) {
   const [estado, accion] = useActionState(guardarProducto, null);
+  const [precio, setPrecio] = useState(producto?.precio ?? null);
+  const [costo, setCosto] = useState(producto?.costo ?? null);
+  const margen = precio != null && costo != null ? precio - costo : null;
+  const leerNumero = (valor: string) => {
+    const limpio = valor.replace(/\D/g, '');
+    return limpio ? Number(limpio) : null;
+  };
 
   return (
     <form action={accion} className="space-y-8">
@@ -47,7 +56,7 @@ export function ProductForm({
       <Bloque titulo="Identificación" descripcion="El código y el nombre vienen del Excel del negocio.">
         <Campo nombre="codigo" etiqueta="Código" valor={producto?.codigo} requerido />
         <Campo nombre="nombre" etiqueta="Nombre" valor={producto?.nombre} requerido className="sm:col-span-2" />
-        <Selector nombre="genero" etiqueta="Género" valor={producto?.genero ?? 'UNISEX'} opciones={GENEROS} />
+        <Selector nombre="genero" etiqueta="Género" valor={producto?.genero ?? 'SIN_GENERO'} opciones={GENEROS} />
         <Selector
           nombre="marcaId"
           etiqueta="Marca"
@@ -68,7 +77,18 @@ export function ProductForm({
       </Bloque>
 
       <Bloque titulo="Precio e inventario" descripcion="Deja vacío lo que todavía no esté definido: la tienda lo muestra como “por confirmar”.">
-        <Campo nombre="precio" etiqueta="Precio (COP)" valor={producto?.precio} tipo="number" />
+        <label className="block">
+          <span className="mb-1.5 block text-[0.62rem] uppercase tracking-[0.18em] text-[var(--surface-muted)]">
+            Precio publicado (COP)
+          </span>
+          <input
+            name="precio"
+            type="number"
+            defaultValue={producto?.precio ?? ''}
+            onChange={(evento) => setPrecio(leerNumero(evento.target.value))}
+            className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
+          />
+        </label>
         <Campo
           nombre="precioAnterior"
           etiqueta="Precio anterior"
@@ -77,6 +97,32 @@ export function ProductForm({
           ayuda="Sólo si hay descuento real."
         />
         <Campo nombre="precioMayorista" etiqueta="Precio mayorista" valor={producto?.precioMayorista} tipo="number" />
+        <label className="block">
+          <span className="mb-1.5 block text-[0.62rem] uppercase tracking-[0.18em] text-[var(--surface-muted)]">
+            Costo (confidencial)
+          </span>
+          <input
+            name="costo"
+            type="number"
+            defaultValue={producto?.costo ?? ''}
+            onChange={(evento) => setCosto(leerNumero(evento.target.value))}
+            className="w-full border border-[var(--surface-control)] bg-[var(--surface-card)] px-3 py-2.5 text-sm outline-none transition-colors focus:border-vino"
+          />
+          <span className="mt-1 block text-[0.7rem] text-[var(--surface-muted)]">
+            Lo que pagas al proveedor. Nunca se muestra en la tienda.
+          </span>
+        </label>
+        <div className="flex flex-col justify-center border border-dashed border-[var(--surface-line)] px-3 py-2">
+          <span className="text-[0.62rem] uppercase tracking-[0.18em] text-[var(--surface-muted)]">Margen</span>
+          <span className={`text-lg ${margen != null && margen < 0 ? 'text-red-700' : ''}`}>
+            {margen != null ? formatCOP(margen) : '—'}
+          </span>
+          {margen != null && precio ? (
+            <span className="text-[0.7rem] text-[var(--surface-muted)]">
+              {Math.round((margen / precio) * 100)}% sobre el precio publicado
+            </span>
+          ) : null}
+        </div>
         <Campo
           nombre="stock"
           etiqueta="Stock"

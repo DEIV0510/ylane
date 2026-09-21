@@ -39,8 +39,10 @@ export default async function HomePage() {
     productosMasVendidos(),
   ]);
 
-  // Si el negocio todavía no marcó destacados, se muestra una entrada del catálogo.
-  const seleccionYlane = destacados.length >= 4 ? destacados : await seleccion({ limite: 10 });
+  // "Lo que recomendamos" es una afirmación del negocio: sólo se muestra cuando
+  // el negocio marcó destacados en el panel. Rellenar con referencias al azar
+  // sería recomendar algo que nadie eligió.
+  const seleccionYlane = destacados.length >= 4 ? destacados : [];
   const confianza = parsearTarjetas(bloques.home_confianza ?? '');
 
   return (
@@ -105,7 +107,7 @@ export default async function HomePage() {
       {masVendidos.length >= 4 && (
         <section data-surface="oscuro" className="border-t border-[var(--surface-line)] py-20 lg:py-24">
           <div className="shell">
-            <SectionHeader eyebrow="Los que más salen" titulo="Más vendidos" enlace="/perfumes?orden=novedades" />
+            <SectionHeader eyebrow="Los que más salen" titulo="Más vendidos" enlace="/perfumes" enlaceTexto="Ver catálogo" />
             <div className="mt-10">
               <ProductRow productos={masVendidos} />
             </div>

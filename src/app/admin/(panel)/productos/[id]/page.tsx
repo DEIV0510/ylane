@@ -45,13 +45,25 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
           </p>
           <h1 className="display-md mt-1">{producto.nombre}</h1>
         </div>
-        <Link
-          href={`/perfumes/${producto.slug}`}
-          target="_blank"
-          className="border border-[var(--surface-line)] px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.14em] transition-colors hover:border-vino hover:text-vino"
-        >
-          Ver en la tienda ↗
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {producto.proveedorUrl && (
+            <a
+              href={producto.proveedorUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="border border-[var(--surface-line)] px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.14em] transition-colors hover:border-vino hover:text-vino"
+            >
+              Ficha del proveedor ↗
+            </a>
+          )}
+          <Link
+            href={`/perfumes/${producto.slug}`}
+            target="_blank"
+            className="border border-[var(--surface-line)] px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.14em] transition-colors hover:border-vino hover:text-vino"
+          >
+            Ver en la tienda ↗
+          </Link>
+        </div>
       </header>
 
       <ImageManager productId={producto.id} imagenes={imagenes} />

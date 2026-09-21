@@ -21,6 +21,7 @@ const SECCIONES = [
     items: [
       { href: '/admin/productos', etiqueta: 'Productos' },
       { href: '/admin/productos/precios', etiqueta: 'Precios y stock' },
+      { href: '/admin/productos/generos', etiqueta: 'Asignar género' },
       { href: '/admin/inventario', etiqueta: 'Inventario' },
       { href: '/admin/marcas', etiqueta: 'Marcas' },
       { href: '/admin/categorias', etiqueta: 'Categorías' },
@@ -44,9 +45,14 @@ const SECCIONES = [
   },
 ];
 
+const TODAS = SECCIONES.flatMap((seccion) => seccion.items.map((item) => item.href));
+
 export function AdminNav({ nombre }: { nombre: string }) {
   const ruta = usePathname();
   const [abierto, setAbierto] = useState(false);
+  const activa = TODAS.filter((href) => (href === '/admin' ? ruta === '/admin' : ruta.startsWith(href))).sort(
+    (a, b) => b.length - a.length,
+  )[0];
 
   const enlaces = (
     <nav className="space-y-7">
@@ -57,8 +63,7 @@ export function AdminNav({ nombre }: { nombre: string }) {
           </p>
           <ul className="space-y-0.5">
             {seccion.items.map((item) => {
-              const activo =
-                item.href === '/admin' ? ruta === '/admin' : ruta.startsWith(item.href);
+              const activo = item.href === activa;
               return (
                 <li key={item.href}>
                   <Link

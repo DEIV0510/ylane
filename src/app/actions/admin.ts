@@ -108,7 +108,7 @@ const esquemaProducto = z.object({
   codigo: z.string().trim().min(1, 'El código es obligatorio').max(40),
   nombre: z.string().trim().min(1, 'El nombre es obligatorio').max(200),
   slug: z.string().trim().max(200).optional(),
-  genero: z.enum(['DAMA', 'CABALLERO', 'UNISEX']),
+  genero: z.enum(['DAMA', 'CABALLERO', 'UNISEX', 'SIN_GENERO']),
   marcaId: z.coerce.number().int().optional().nullable(),
   tipo: z.string().trim().optional(),
   descripcion: textoOpcional,
@@ -116,6 +116,7 @@ const esquemaProducto = z.object({
   precio: numeroOpcional,
   precioAnterior: numeroOpcional,
   precioMayorista: numeroOpcional,
+  costo: numeroOpcional,
   stock: numeroOpcional,
   stockMinimo: numeroOpcional,
   familiaOlfativa: textoOpcional,
@@ -185,6 +186,7 @@ export async function guardarProducto(_previo: Estado, formulario: FormData): Pr
     precio: datos.precio ?? null,
     precioAnterior: datos.precioAnterior ?? null,
     precioMayorista: datos.precioMayorista ?? null,
+    costo: datos.costo ?? null,
     stock: datos.stock ?? null,
     stockMinimo: datos.stockMinimo ?? 3,
     familiaOlfativa: datos.familiaOlfativa,
@@ -291,9 +293,12 @@ export async function duplicarProducto(id: number) {
 export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData): Promise<Estado> {
   await guardia();
 
-  const cambios = new Map<number, { precio?: number | null; precioAnterior?: number | null; stock?: number | null }>();
+  const cambios = new Map<
+    number,
+    { precio?: number | null; precioAnterior?: number | null; costo?: number | null; stock?: number | null }
+  >();
   for (const [clave, valor] of formulario.entries()) {
-    const coincidencia = /^(precio|precioAnterior|stock)_(\d+)$/.exec(clave);
+    const coincidencia = /^(precio|precioAnterior|costo|stock)_(\d+)$/.exec(clave);
     if (!coincidencia) continue;
     const [, campo, idTexto] = coincidencia;
     const id = Number(idTexto);
@@ -313,6 +318,7 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
     const nuevos = {
       precio: valores.precio !== undefined ? valores.precio : actual.precio,
       precioAnterior: valores.precioAnterior !== undefined ? valores.precioAnterior : actual.precioAnterior,
+      costo: valores.costo !== undefined ? valores.costo : actual.costo,
       stock: valores.stock !== undefined ? valores.stock : actual.stock,
     };
 
@@ -330,6 +336,7 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
     if (
       nuevos.precio === actual.precio &&
       nuevos.precioAnterior === actual.precioAnterior &&
+      nuevos.costo === actual.costo &&
       nuevos.stock === actual.stock
     ) {
       continue;
@@ -351,6 +358,52 @@ export async function guardarPreciosMasivo(_previo: Estado, formulario: FormData
     );
   }
   return ok(mensaje);
+}
+
+/** Asigna el mismo género a varias referencias a la vez. */
+export async function asignarGeneroMasivo(_previo: Estado, formulario: FormData): Promise<Estado> {
+  await guardia();
+
+  const genero = String(formulario.get('genero') ?? '');
+  if (!['DAMA', 'CABALLERO', 'UNISEX'].includes(genero)) return error('Elige el género a asignar');
+
+  const ids = formulario
+    .getAll('ids')
+    .map((valor) => Number(valor))
+    .filter((valor) => Number.isInteger(valor) && valor > 0);
+  if (!ids.length) return error('Selecciona al menos una referencia');
+
+  const afectados = await db
+    .select({
+      id: products.id,
+      codigo: products.codigo,
+      nombre: products.nombre,
+      tipo: products.tipo,
+      familiaOlfativa: products.familiaOlfativa,
+      tags: products.tags,
+      marca: brands.nombre,
+    })
+    .from(products)
+    .leftJoin(brands, eq(products.marcaId, brands.id))
+    .where(inArray(products.id, ids))
+    .all();
+
+  // El género entra en el índice del buscador ("hombre", "mujer"…): se recalcula.
+  for (const producto of afectados) {
+    await db
+      .update(products)
+      .set({
+        genero,
+        buscador: indiceBuscador({ ...producto, genero }),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(products.id, producto.id));
+  }
+
+  revalidatePath('/admin/productos/generos');
+  refrescarTienda(['/hombre', '/mujer', '/unisex']);
+  const etiqueta = genero === 'DAMA' ? 'Mujer' : genero === 'CABALLERO' ? 'Hombre' : 'Unisex';
+  return ok(`${afectados.length} ${afectados.length === 1 ? 'referencia' : 'referencias'} → ${etiqueta}`);
 }
 
 /* ═══════════════════════════════ IMÁGENES ════════════════════════ */
@@ -571,16 +624,56 @@ export async function guardarMarca(_previo: Estado, formulario: FormData): Promi
     logo: String(formulario.get('logo') ?? '').trim() || null,
   };
 
+  let reclasificados = 0;
   try {
-    if (id) await db.update(brands).set(valores).where(eq(brands.id, id));
-    else await db.insert(brands).values({ ...valores, slug: await slugMarcaLibre(slugify(nombre)) });
+    if (id) {
+      const anterior = await db.select().from(brands).where(eq(brands.id, id)).get();
+      await db.update(brands).set(valores).where(eq(brands.id, id));
+
+      // Si cambia la clasificación de la marca, sus referencias la siguen,
+      // salvo las que el negocio ya clasificó a mano de otra forma.
+      if (anterior && anterior.origen !== valores.origen) {
+        const referencias = await db
+          .select({
+            id: products.id,
+            codigo: products.codigo,
+            nombre: products.nombre,
+            genero: products.genero,
+            tipo: products.tipo,
+            familiaOlfativa: products.familiaOlfativa,
+            tags: products.tags,
+          })
+          .from(products)
+          .where(eq(products.marcaId, id))
+          .all();
+
+        for (const referencia of referencias) {
+          if (referencia.tipo !== null && referencia.tipo !== anterior.origen) continue;
+          await db
+            .update(products)
+            .set({
+              tipo: valores.origen,
+              buscador: indiceBuscador({ ...referencia, tipo: valores.origen, marca: nombre }),
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(products.id, referencia.id));
+          reclasificados += 1;
+        }
+      }
+    } else {
+      await db.insert(brands).values({ ...valores, slug: await slugMarcaLibre(slugify(nombre)) });
+    }
   } catch {
     return error('No se pudo guardar la marca. Revisa que el nombre no esté repetido.');
   }
 
   revalidatePath('/admin/marcas');
-  refrescarTienda();
-  return ok('Marca guardada');
+  refrescarTienda(['/arabes']);
+  return ok(
+    reclasificados
+      ? `Marca guardada · ${reclasificados} ${reclasificados === 1 ? 'referencia reclasificada' : 'referencias reclasificadas'}`
+      : 'Marca guardada',
+  );
 }
 
 async function slugMarcaLibre(base: string) {
