@@ -25,3 +25,6 @@ Thumbs.db
 data/catalogo-proveedor.xlsx
 data/catalogo-proveedor*.json
 data/respaldos/
+
+.vercel
+.env*

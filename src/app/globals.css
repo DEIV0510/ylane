@@ -2,8 +2,18 @@
 
 /* ══════════════════════════════════════════════════════════════════
    YLANE PERFUMES — sistema visual
-   Negro · Vino profundo · Champagne (acento) · Marfil
+   Negro · Marfil · Vino, con el champagne sólo como acento.
+   La dirección de arte completa está en docs/DIRECCION-DE-ARTE.md.
    ══════════════════════════════════════════════════════════════════ */
+
+/* Dispositivos con puntero fino (ratón) frente a pantallas táctiles:
+   la tarjeta de producto muestra su acción al pasar el ratón en
+   escritorio y la deja siempre visible en móvil. */
+@custom-variant can-hover (@media (hover: hover) and (pointer: fine));
+/* Complemento EXACTO de can-hover (no una lista separada por comas: eso
+   compila a un selector inválido en Tailwind v4 y el botón de compra
+   desaparece en dispositivos hover:hover + pointer:coarse). */
+@custom-variant no-hover (@media not all and (hover: hover) and (pointer: fine));
 
 @theme {
   --color-noir: #090909;
@@ -16,6 +26,9 @@
   --color-champagne-soft: #e0c894;
   --color-marfil: #f4efe8;
   --color-marfil-dim: #ded6cc;
+  --color-lino: #ebe4d8;
+  --color-piedra: #d8cdbd;
+  --color-tinta: #1a1416;
   --color-gris: #77716e;
 
   --font-display: var(--font-bodoni), 'Bodoni Moda', 'Didot', Georgia, serif;
@@ -27,32 +40,78 @@
 }
 
 /* ── Superficies ────────────────────────────────────────────────────
-   Cada bloque declara data-surface y hereda sus colores. Así se alterna
-   claro/oscuro sin reescribir clases en cada elemento hijo.           */
+   Cada bloque declara data-surface y hereda sus colores. La portada
+   alterna negro, marfil y vino para que la página respire.
+   --stage es el fondo donde se apoya el producto: siempre claro, para
+   que las fotos de producto con fondo blanco se integren (multiply) y
+   el marcador tipográfico se lea igual en cualquier sección.          */
 @layer base {
   :root {
+    /* Cabecera: alta al empezar, compacta al hacer scroll. Los elementos
+       sticky se anclan a la compacta (--header-h), que es la que está
+       visible cuando llegan arriba. --barra-h la fija el layout si hay
+       barra de anuncio. */
+    --header-h: 3.5rem;
+    --header-alto: 4rem;
+    --barra-h: 0px;
     --surface-bg: var(--color-noir);
     --surface-fg: var(--color-marfil);
-    --surface-muted: #a8a19c;
-    --surface-line: rgb(199 166 106 / 0.22);
+    --surface-muted: #aaa39e;
+    --surface-line: rgb(199 166 106 / 0.2);
     /* Borde de controles: más marcado que el hilo decorativo, para llegar a 3:1. */
     --surface-control: rgb(214 199 172 / 0.55);
     --surface-card: var(--color-noir-soft);
     --surface-input: rgb(255 255 255 / 0.04);
+    --stage: #ece5da;
+    --acento: var(--color-champagne);
+    --foco: var(--color-champagne);
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --header-h: 3.75rem;
+      --header-alto: 5rem;
+    }
+  }
+
+  /* Explícita para poder anidar un bloque oscuro dentro de uno claro. */
+  [data-surface='oscuro'] {
+    --surface-bg: var(--color-noir);
+    --surface-fg: var(--color-marfil);
+    --surface-muted: #aaa39e;
+    --surface-line: rgb(199 166 106 / 0.2);
+    --surface-control: rgb(214 199 172 / 0.55);
+    --surface-card: var(--color-noir-soft);
+    --surface-input: rgb(255 255 255 / 0.04);
+    --stage: #ece5da;
     --acento: var(--color-champagne);
     --foco: var(--color-champagne);
   }
 
   [data-surface='claro'] {
     --surface-bg: var(--color-marfil);
-    --surface-fg: #1a1416;
+    --surface-fg: var(--color-tinta);
     --surface-muted: #5d544f;
     /* Borde de controles: 3:1 mínimo (WCAG 1.4.11). El hilo decorativo va aparte. */
-    --surface-line: rgb(26 20 22 / 0.16);
+    --surface-line: rgb(26 20 22 / 0.14);
     --surface-control: rgb(26 20 22 / 0.55);
     --surface-card: #ffffff;
-    --surface-input: rgb(26 20 22 / 0.04);
+    --surface-input: rgb(26 20 22 / 0.035);
+    --stage: var(--color-lino);
     /* El champagne no contrasta sobre marfil: en claro el acento es el vino. */
+    --acento: var(--color-vino);
+    --foco: var(--color-vino);
+  }
+
+  [data-surface='lino'] {
+    --surface-bg: var(--color-lino);
+    --surface-fg: var(--color-tinta);
+    --surface-muted: #575049;
+    --surface-line: rgb(26 20 22 / 0.15);
+    --surface-control: rgb(26 20 22 / 0.55);
+    --surface-card: var(--color-marfil);
+    --surface-input: rgb(255 255 255 / 0.5);
+    --stage: var(--color-marfil);
     --acento: var(--color-vino);
     --foco: var(--color-vino);
   }
@@ -60,13 +119,14 @@
   [data-surface='vino'] {
     --surface-bg: var(--color-vino-dark);
     --surface-fg: var(--color-marfil);
-    --surface-muted: #d4c2c4;
-    --surface-line: rgb(199 166 106 / 0.3);
+    --surface-muted: #d6c5c7;
+    --surface-line: rgb(224 200 148 / 0.28);
     --surface-control: rgb(224 200 148 / 0.6);
     --surface-card: rgb(0 0 0 / 0.25);
     --surface-input: rgb(255 255 255 / 0.06);
-    --acento: var(--color-champagne);
-    --foco: var(--color-champagne);
+    --stage: #efe7dc;
+    --acento: var(--color-champagne-soft);
+    --foco: var(--color-champagne-soft);
   }
 
   [data-surface] {
@@ -80,6 +140,7 @@
 
   html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -87,12 +148,18 @@
     background-color: var(--color-noir);
     color: var(--color-marfil);
     font-family: var(--font-sans);
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.65;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.005em;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      font-size: 15px;
+    }
   }
 
   h1, h2, h3, h4 {
@@ -119,18 +186,42 @@
     color: inherit;
   }
 
+  button, [role='button'] {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
   img {
     max-width: 100%;
+  }
+
+  a, button {
+    touch-action: manipulation;
   }
 }
 
 /* ── Utilidades de marca ───────────────────────────────────────────── */
 @utility eyebrow {
   font-size: 0.6875rem;
-  letter-spacing: 0.34em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   font-weight: 500;
   /* El champagne sólo contrasta sobre fondo oscuro; en claro toma el vino. */
+  color: var(--acento, var(--color-champagne));
+}
+
+/* Índice editorial de sección: «01 — Selección YLANE». */
+@utility indice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-weight: 500;
   color: var(--acento, var(--color-champagne));
 }
 
@@ -141,7 +232,7 @@
 @utility shell {
   width: 100%;
   margin-inline: auto;
-  max-width: 84rem;
+  max-width: 88rem;
   padding-inline: 1.25rem;
 }
 
@@ -153,28 +244,83 @@
 
 @media (min-width: 1280px) {
   .shell {
-    padding-inline: 3.5rem;
+    padding-inline: 4rem;
   }
 }
 
-/* Título editorial: escala fluida sin romper en móvil */
+/* Ritmo vertical de las secciones: amplio, igual en todas. */
+@utility section-y {
+  padding-block: 5rem;
+}
+
+@media (min-width: 1024px) {
+  .section-y {
+    padding-block: 8rem;
+  }
+}
+
+/* Títulos editoriales: escala fluida, sin romper en móvil. */
+@utility display-hero {
+  font-family: var(--font-display);
+  font-size: clamp(3.1rem, 7.4vw, 7.25rem);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+
 @utility display-xl {
   font-family: var(--font-display);
-  font-size: clamp(2.75rem, 9vw, 7rem);
-  line-height: 0.94;
+  font-size: clamp(2.75rem, 7vw, 6rem);
+  line-height: 0.95;
   letter-spacing: -0.02em;
 }
 
 @utility display-lg {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  line-height: 1.04;
+  font-size: clamp(2.1rem, 4.4vw, 3.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.015em;
 }
 
 @utility display-md {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  line-height: 1.12;
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+  line-height: 1.1;
+}
+
+/* Texto de apoyo de sección: medida cómoda de lectura. */
+@utility lead {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--surface-muted);
+  max-width: 34rem;
+}
+
+/* Enlace de texto con flecha: la acción secundaria de todo el sitio. */
+@utility link-flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--surface-fg);
+  text-decoration: underline;
+  text-decoration-color: var(--surface-line);
+  text-underline-offset: 0.55em;
+  transition: color 0.3s, text-decoration-color 0.3s;
+}
+
+.link-flecha:hover {
+  color: var(--acento);
+  text-decoration-color: currentColor;
+}
+
+/* ── Escenario de producto ─────────────────────────────────────────── */
+@utility stage {
+  background-color: var(--stage);
+  container-type: inline-size;
 }
 
 /* ── Texturas ──────────────────────────────────────────────────────── */
@@ -183,7 +329,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0.22;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
@@ -195,15 +341,15 @@
 @media (prefers-reduced-motion: no-preference) {
   html.js-ready [data-reveal] {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px);
   }
 
   html.js-ready [data-reveal].is-in {
     opacity: 1;
     transform: none;
     transition:
-      opacity 0.85s var(--ease-silk),
-      transform 0.85s var(--ease-silk);
+      opacity 0.8s var(--ease-silk),
+      transform 0.8s var(--ease-silk);
   }
 
   html.js-ready [data-reveal='fade'] {
@@ -259,12 +405,23 @@
   }
 }
 
-@keyframes ylane-veil {
+@keyframes ylane-fade {
   from {
-    transform: scaleY(1);
+    opacity: 0;
   }
   to {
-    transform: scaleY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ylane-reveal-img {
+  from {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -277,21 +434,16 @@
   }
 }
 
-@keyframes ylane-drift {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -2%, 0) scale(1.04);
-  }
-}
-
 .animate-fade-up {
-  animation: ylane-fade-up 0.7s var(--ease-silk) both;
+  animation: ylane-fade-up 0.8s var(--ease-silk) both;
 }
 
-.animate-drift {
-  animation: ylane-drift 18s ease-in-out infinite;
+.animate-fade {
+  animation: ylane-fade 0.6s var(--ease-silk) both;
+}
+
+.animate-reveal-img {
+  animation: ylane-reveal-img 1.4s var(--ease-silk) both;
 }
 
 .shimmer {
@@ -342,5 +494,5 @@
   top: 0.72em;
   width: 0.4rem;
   height: 1px;
-  background: var(--color-champagne);
+  background: var(--acento, var(--color-champagne));
 }

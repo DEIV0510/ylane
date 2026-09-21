@@ -64,8 +64,14 @@ Sube el archivo, elige el tipo y pulsa *Agregar imagen*.
 - **Principal**: la que se ve en el catálogo y en las tarjetas.
 - **Secundaria, Galería, Lifestyle, Notas**: las demás, en la ficha del producto.
 
-Mientras una referencia no tenga foto, se muestra un marcador con la identidad de YLANE.
-No es una foto genérica repetida: cada una tiene su propio tono.
+Mientras una referencia no tenga foto, se muestra una **etiqueta tipográfica** con la marca,
+el nombre, la concentración y la referencia. No es un frasco inventado (sería mostrar un
+producto que no es) ni lleva «YLANE» (YLANE distribuye, no fabrica).
+
+Para que las fotos luzcan: **fondo blanco o muy claro**, el frasco completo y sin recortar,
+vertical u horizontal. La tienda integra sola el fondo blanco con el marfil del escenario,
+así que no hace falta recortarlas. Si subes una segunda foto (*Secundaria*), la tarjeta la
+muestra al pasar el ratón.
 
 ### 5. Completa los textos legales
 
@@ -147,9 +153,9 @@ Los campos están agrupados:
 | Bandera | Dónde aparece |
 | --- | --- |
 | **Publicado** | Si lo apagas, la referencia desaparece de la tienda pero no se borra. |
-| **Destacado** | Sección «Selección YLANE» de la portada. Aparece cuando marcas **al menos 4**. |
-| **Best seller** | Etiqueta en la tarjeta y colección Best Sellers. Márcalo sólo si de verdad lo es. |
-| **Novedad** | Etiqueta «Nuevo» y colección Novedades. |
+| **Destacado** | Sección «Selección YLANE» de la portada: la primera marcada es la protagonista y las dos siguientes la acompañan. Mientras no marques **al menos 3**, la portada la arma sola con una referencia de nicho, una árabe y una de diseñador. |
+| **Best seller** | Colección Best Sellers. Márcalo sólo si de verdad lo es. |
+| **Novedad** | Etiqueta «Nuevo» en la tarjeta (la tarjeta muestra una sola etiqueta: primero «Agotado», luego el descuento y por último «Nuevo»). |
 
 ### Marcas
 
@@ -193,8 +199,23 @@ Las categorías se arman con un filtro del catálogo:
 
 ### Banners
 
-**Banners** controla el hero de la portada (título, subtítulo, texto y los dos botones) y
-la banda promocional. Si dejas la imagen vacía se usa la composición gráfica de la marca.
+**Banners** controla el hero de la portada y la sección de perfumería árabe:
+
+- **Hero**: el título es la línea pequeña de arriba (`YLANE PERFUMES`), el subtítulo es el
+  titular grande (cada frase terminada en punto va en su propia línea: «Tu aroma. Tu firma.»),
+  el texto va debajo y luego los dos botones.
+- **Promo**: los textos de la sección «Perfumería árabe».
+
+Si dejas la imagen vacía se usa la fotografía editorial de la portada. Si subes una, la
+reemplaza: que sea horizontal o cuadrada, oscura y sin texto, con el producto hacia la
+derecha (la izquierda la ocupa el titular).
+
+Las **categorías** también aceptan imagen: si la subes, reemplaza la foto de esa colección
+en el mosaico de la portada.
+
+La sección **Más buscados** aparece sola cuando hay datos reales: cuatro fichas con al menos
+12 visitas cada una. Mientras tanto la portada muestra «Las grandes firmas» (una referencia
+de diseñador por marca), sin afirmar nada sobre su demanda.
 
 ### Cupones
 

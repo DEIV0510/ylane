@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { LeadForm } from '@/components/forms/LeadForm';
+import { Indice } from '@/components/ui/Bits';
 import { ExternalButton } from '@/components/ui/Button';
 import { getSettings } from '@/lib/settings';
 import { whatsappUrl } from '@/lib/whatsapp';
@@ -16,6 +17,7 @@ export default async function ContactoPage() {
   const ajustes = await getSettings();
   const wa = whatsappUrl(ajustes.whatsapp, 'Hola, quiero información sobre YLANE PERFUMES.');
 
+  // Sólo los datos que el negocio ya publicó en el panel; los vacíos no se muestran.
   const datos = [
     ajustes.telefono && { etiqueta: 'Teléfono', valor: ajustes.telefono, href: `tel:${ajustes.telefono}` },
     ajustes.email && { etiqueta: 'Correo', valor: ajustes.email, href: `mailto:${ajustes.email}` },
@@ -31,103 +33,112 @@ export default async function ContactoPage() {
   ].filter((red) => red.url);
 
   return (
-    <div data-surface="oscuro">
-      <header className="border-b border-[var(--surface-line)]">
-        <div className="shell py-14 lg:py-20">
-          <p className="eyebrow mb-3">Estamos para ayudarte</p>
-          <h1 className="display-lg">Contacto</h1>
-          <p className="mt-4 max-w-2xl text-[0.95rem] leading-relaxed text-[var(--surface-muted)]">
-            Cuéntanos qué buscas y te ayudamos a elegir. También resolvemos dudas de pedidos,
-            envíos y distribución.
-          </p>
-        </div>
+    <div data-surface="claro">
+      <header className="shell pb-12 pt-16 lg:pb-20 lg:pt-28">
+        <Indice className="mb-6 lg:mb-8">Estamos para ayudarte</Indice>
+        <h1 className="display-lg">Contacto</h1>
+        <p className="lead mt-6 lg:mt-8">
+          Cuéntanos qué buscas y te ayudamos a elegir. También resolvemos dudas de pedidos,
+          envíos y distribución.
+        </p>
       </header>
 
-      <div className="shell grid gap-14 py-14 lg:grid-cols-[1fr_1.2fr] lg:py-20">
-        <div className="space-y-10">
-          {wa && (
-            <div className="border border-[var(--surface-line)] p-7">
-              <h2 className="font-[family-name:var(--font-display)] text-xl">
-                La vía más rápida es WhatsApp
-              </h2>
-              <p className="mt-2 text-[0.88rem] text-[var(--surface-muted)]">
-                Te respondemos en horario de atención y te asesoramos antes de comprar.
-              </p>
-              <ExternalButton href={wa} target="_blank" className="mt-5 w-full">
-                Escribir por WhatsApp
-              </ExternalButton>
-            </div>
-          )}
+      <div className="shell pb-20 lg:pb-32">
+        <div className="grid gap-16 border-t border-[var(--surface-line)] pt-12 lg:grid-cols-12 lg:gap-x-10 lg:pt-20">
+          {/* Canales a la izquierda (4 columnas y una de aire), formulario a la derecha (7). */}
+          <div className="lg:col-span-4">
+            <h2 className="display-md">Escríbenos</h2>
 
-          {datos.length > 0 && (
-            <dl className="space-y-4">
-              {datos.map((dato) => (
-                <div key={dato.etiqueta} className="border-b border-[var(--surface-line)] pb-4">
-                  <dt className="text-[0.62rem] uppercase tracking-[0.22em] text-champagne">
-                    {dato.etiqueta}
-                  </dt>
-                  <dd className="mt-1 text-[0.95rem]">
-                    {dato.href ? (
-                      <a href={dato.href} className="transition-colors hover:text-champagne">
-                        {dato.valor}
-                      </a>
-                    ) : (
-                      dato.valor
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
+            {wa && (
+              <div className="mt-8">
+                <p className="max-w-sm text-[var(--surface-muted)]">
+                  ¿Prefieres WhatsApp? Es la vía más rápida y te asesoramos antes de comprar.
+                </p>
+                {/* A lo ancho de la columna: en 1024 px mide 288 px y el texto no debe partirse. */}
+                <ExternalButton
+                  href={wa}
+                  target="_blank"
+                  variante="contorno"
+                  tamano="lg"
+                  className="mt-5 w-full"
+                >
+                  Escribir por WhatsApp
+                </ExternalButton>
+              </div>
+            )}
 
-          {redes.length > 0 && (
-            <div>
-              <p className="eyebrow mb-4">Síguenos</p>
-              <ul className="flex flex-wrap gap-3">
-                {redes.map((red) => (
-                  <li key={red.etiqueta}>
-                    <a
-                      href={red.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex border border-[var(--surface-line)] px-5 py-2.5 text-[0.68rem] uppercase tracking-[0.16em] transition-colors hover:border-champagne hover:text-champagne"
-                    >
-                      {red.etiqueta}
-                    </a>
-                  </li>
+            {(datos.length > 0 || redes.length > 0) && (
+              <dl className="mt-10 border-t border-[var(--surface-line)]">
+                {datos.map((dato) => (
+                  <div
+                    key={dato.etiqueta}
+                    className="grid gap-1 border-b border-[var(--surface-line)] py-4 sm:grid-cols-[6.5rem_1fr] sm:items-baseline sm:gap-6"
+                  >
+                    <dt className="text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-[var(--surface-muted)]">
+                      {dato.etiqueta}
+                    </dt>
+                    <dd className="min-w-0 break-words">
+                      {dato.href ? (
+                        <a
+                          href={dato.href}
+                          className="inline-flex min-h-11 items-center underline decoration-[var(--surface-line)] underline-offset-4 transition-colors duration-300 hover:text-[var(--acento)] hover:decoration-current"
+                        >
+                          {dato.valor}
+                        </a>
+                      ) : (
+                        dato.valor
+                      )}
+                    </dd>
+                  </div>
                 ))}
-              </ul>
-            </div>
-          )}
 
-          {datos.length === 0 && !wa && (
-            <p className="text-[0.88rem] text-[var(--surface-muted)]">
-              Los datos de contacto se publican desde el panel de administración. Mientras tanto,
-              usa el formulario y te respondemos.
-            </p>
-          )}
-        </div>
+                {redes.length > 0 && (
+                  <div className="grid gap-1 border-b border-[var(--surface-line)] py-4 sm:grid-cols-[6.5rem_1fr] sm:items-baseline sm:gap-6">
+                    <dt className="text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-[var(--surface-muted)]">
+                      Síguenos
+                    </dt>
+                    <dd>
+                      <ul className="flex flex-wrap gap-x-6">
+                        {redes.map((red) => (
+                          <li key={red.etiqueta}>
+                            <a
+                              href={red.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-11 items-center underline decoration-[var(--surface-line)] underline-offset-4 transition-colors duration-300 hover:text-[var(--acento)] hover:decoration-current"
+                            >
+                              {red.etiqueta}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            )}
+          </div>
 
-        <div>
-          <h2 className="eyebrow mb-6">Escríbenos</h2>
-          <LeadForm
-            tipo="contacto"
-            textoBoton="Enviar mensaje"
-            mensajeExito="Recibimos tu mensaje. Te respondemos lo antes posible."
-            campos={[
-              { nombre: 'nombre', etiqueta: 'Nombre', requerido: true },
-              { nombre: 'telefono', etiqueta: 'WhatsApp', tipo: 'tel' },
-              { nombre: 'email', etiqueta: 'Correo', tipo: 'email' },
-              { nombre: 'ciudad', etiqueta: 'Ciudad' },
-              {
-                nombre: 'mensaje',
-                etiqueta: 'Mensaje',
-                multilinea: true,
-                requerido: true,
-                placeholder: '¿Qué fragancia buscas? ¿Tienes alguna duda?',
-              },
-            ]}
-          />
+          <div className="lg:col-span-7 lg:col-start-6">
+            <LeadForm
+              tipo="contacto"
+              textoBoton="Enviar mensaje"
+              mensajeExito="Recibimos tu mensaje. Te respondemos lo antes posible."
+              campos={[
+                { nombre: 'nombre', etiqueta: 'Nombre', requerido: true },
+                { nombre: 'telefono', etiqueta: 'WhatsApp', tipo: 'tel' },
+                { nombre: 'email', etiqueta: 'Correo', tipo: 'email' },
+                { nombre: 'ciudad', etiqueta: 'Ciudad' },
+                {
+                  nombre: 'mensaje',
+                  etiqueta: 'Mensaje',
+                  multilinea: true,
+                  requerido: true,
+                  placeholder: '¿Qué fragancia buscas? ¿Tienes alguna duda?',
+                },
+              ]}
+            />
+          </div>
         </div>
       </div>
     </div>

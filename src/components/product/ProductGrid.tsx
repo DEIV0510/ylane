@@ -1,41 +1,46 @@
 import type { ProductoVista } from '@/lib/catalog';
 import { ProductCard } from './ProductCard';
 
+/**
+ * Rejilla de producto con aire: 2 columnas en móvil, 3 en el catálogo y 4 en
+ * las secciones cortas de la portada. El espacio entre fichas es deliberado.
+ */
 export function ProductGrid({
   productos,
-  columnas = 4,
+  columnas = 3,
   prioridadPrimeros = 0,
+  escalonada = false,
+  sizes: sizesPropio,
 }: {
   productos: ProductoVista[];
   columnas?: 3 | 4;
   prioridadPrimeros?: number;
+  /** Desplaza las columnas pares hacia abajo: ritmo editorial para secciones cortas. */
+  escalonada?: boolean;
+  /** Ancho real de cada ficha si la rejilla no ocupa todo el contenedor (p. ej. junto a filtros). */
+  sizes?: string;
 }) {
   const clases =
     columnas === 3
-      ? 'grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3'
-      : 'grid grid-cols-2 gap-x-5 gap-y-10 sm:grid-cols-3 lg:grid-cols-4';
+      ? 'grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 lg:grid-cols-3 lg:gap-x-10 lg:gap-y-16'
+      : 'grid grid-cols-2 gap-x-4 gap-y-12 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8';
+
+  const sizes =
+    sizesPropio ??
+    (columnas === 3
+      ? '(max-width: 1024px) 50vw, 30vw'
+      : '(max-width: 1024px) 50vw, 23vw');
 
   return (
     <div className={clases}>
       {productos.map((producto, indice) => (
-        <div key={producto.id} data-reveal style={{ transitionDelay: `${(indice % 4) * 60}ms` }}>
-          <ProductCard producto={producto} prioridad={indice < prioridadPrimeros} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Fila horizontal con scroll por gestos: evita cargar rejillas enormes en móvil. */
-export function ProductRow({ productos }: { productos: ProductoVista[] }) {
-  return (
-    <div className="scroll-row -mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 md:-mx-10 md:px-10 xl:-mx-14 xl:px-14">
-      {productos.map((producto) => (
         <div
           key={producto.id}
-          className="w-[63vw] shrink-0 snap-start sm:w-[38vw] lg:w-[23vw] xl:w-[19rem]"
+          data-reveal
+          style={{ transitionDelay: `${(indice % columnas) * 70}ms` }}
+          className={escalonada && indice % 2 === 1 ? 'lg:translate-y-16 max-lg:mt-10' : ''}
         >
-          <ProductCard producto={producto} compacto />
+          <ProductCard producto={producto} prioridad={indice < prioridadPrimeros} sizes={sizes} />
         </div>
       ))}
     </div>

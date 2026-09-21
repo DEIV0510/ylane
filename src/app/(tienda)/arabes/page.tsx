@@ -24,6 +24,7 @@ export default async function Pagina({
       base={{ tipo: ['arabe'] }}
       bloqueadas={['tipo']}
       rutaBase="/arabes"
+      imagen="/editorial/coleccion-arabes.jpg"
     />
   );
 }

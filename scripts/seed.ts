@@ -44,8 +44,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const db = drizzle(
   createClient({
-    url: process.env.DATABASE_URL ?? 'file:./data/ylane.db',
-    authToken: process.env.DATABASE_AUTH_TOKEN || undefined,
+    url: process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || 'file:./data/ylane.db',
+    authToken: process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || undefined,
   }),
 );
 
@@ -467,10 +467,10 @@ const CONTENIDOS = [
     grupo: 'home',
     descripcion: 'Una línea por bloque, con el formato:  Título | Texto',
     contenido: [
-      'Atención personalizada | Te asesoramos por WhatsApp antes de que decidas.',
-      'Selección curada | Cada referencia entra al catálogo porque la elegimos.',
-      'Envíos a todo el país | Coordinamos el envío contigo al confirmar el pedido.',
-      'Compra acompañada | Te confirmamos disponibilidad antes de cobrar.',
+      'Compra segura | Confirmamos la disponibilidad antes de cobrar.',
+      'Atención personalizada | Te asesoramos antes de que decidas.',
+      'Envíos | Coordinamos la entrega contigo al confirmar el pedido.',
+      'Catálogo seleccionado | Perfumería árabe, de diseñador y nicho.',
     ].join('\n'),
   },
   {
@@ -559,7 +559,7 @@ const CONTENIDOS = [
     contenido: [
       'Precios mayoristas | Escalas de precio según la cantidad que manejes.',
       'Variedad de referencias | Más de 250 referencias en un solo proveedor.',
-      'Perfumería árabe | Acceso a la línea que más rota en el mercado.',
+      'Perfumería árabe | Acceso directo a la especialidad de la casa.',
       'Catálogo actualizado | Te compartimos las entradas nuevas apenas llegan.',
       'Atención personalizada | Un solo contacto directo para tus pedidos.',
       'Opciones de distribución | Coordinamos entregas y envíos según tu ciudad.',
@@ -598,11 +598,10 @@ async function seedBanners() {
       ubicacion: 'hero',
       titulo: 'YLANE PERFUMES',
       subtitulo: 'Tu aroma. Tu firma.',
-      texto:
-        'Descubre una selección de fragancias para cada personalidad, ocasión y estilo.',
-      ctaTexto: 'Explorar perfumes',
+      texto: 'Una selección de fragancias para cada personalidad.',
+      ctaTexto: 'Explorar fragancias',
       ctaUrl: '/perfumes',
-      ctaSecundarioTexto: 'Descubrir mi fragancia',
+      ctaSecundarioTexto: 'Descubrir mi perfume',
       ctaSecundarioUrl: '/descubre',
       orden: 0,
     },
@@ -610,9 +609,8 @@ async function seedBanners() {
       ubicacion: 'promo',
       titulo: 'Perfumería árabe',
       subtitulo: 'La especialidad de la casa',
-      texto:
-        'La línea con la que más se identifica YLANE: intensa, distinta y con carácter propio.',
-      ctaTexto: 'Ver la colección árabe',
+      texto: 'Descubre fragancias intensas, sofisticadas y memorables.',
+      ctaTexto: 'Explorar perfumería árabe',
       ctaUrl: '/arabes',
       orden: 0,
     },

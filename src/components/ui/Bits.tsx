@@ -25,8 +25,54 @@ export function Badge({
   );
 }
 
+/* ── Índice editorial: «02 — Selección YLANE» ───────────────────────── */
+export function Indice({
+  numero,
+  children,
+  className = '',
+}: {
+  numero?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={`indice ${className}`}>
+      {numero && (
+        <>
+          <span className="font-[family-name:var(--font-display)] text-[0.95rem] tracking-normal">
+            {numero}
+          </span>
+          <span aria-hidden="true" className="h-px w-8 bg-current opacity-60" />
+        </>
+      )}
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/* ── Enlace secundario con flecha ───────────────────────────────────── */
+export function EnlaceFlecha({
+  href,
+  children,
+  className = '',
+}: {
+  href: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={`link-flecha group ${className}`}>
+      {children}
+      <span aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+        →
+      </span>
+    </Link>
+  );
+}
+
 /* ── Encabezado de sección ──────────────────────────────────────────── */
 export function SectionHeader({
+  indice,
   eyebrow,
   titulo,
   texto,
@@ -35,6 +81,8 @@ export function SectionHeader({
   align = 'left',
   className = '',
 }: {
+  /** Número de la sección en la narrativa de la página ("02"). */
+  indice?: string;
   eyebrow?: string;
   titulo: string;
   texto?: string;
@@ -46,30 +94,23 @@ export function SectionHeader({
   const centrado = align === 'center';
   return (
     <div
-      className={`flex flex-col gap-4 ${
-        centrado ? 'items-center text-center' : 'sm:flex-row sm:items-end sm:justify-between'
+      className={`flex flex-col gap-6 ${
+        centrado ? 'items-center text-center' : 'md:flex-row md:items-end md:justify-between'
       } ${className}`}
     >
-      <div className={centrado ? 'max-w-2xl' : 'max-w-2xl'}>
-        {eyebrow && <p className="eyebrow mb-3">{eyebrow}</p>}
-        <h2 className="display-lg">{titulo}</h2>
-        {texto && (
-          <p className="mt-4 text-[0.95rem] leading-relaxed text-[var(--surface-muted)]">{texto}</p>
+      <div className="max-w-2xl">
+        {eyebrow && (
+          <Indice numero={indice} className="mb-5">
+            {eyebrow}
+          </Indice>
         )}
+        <h2 className="display-lg">{titulo}</h2>
+        {texto && <p className={`lead mt-5 ${centrado ? 'mx-auto' : ''}`}>{texto}</p>}
       </div>
       {enlace && (
-        <Link
-          href={enlace}
-          className="group inline-flex shrink-0 items-center gap-2 text-[0.68rem] font-medium uppercase tracking-[0.24em] text-champagne transition-colors hover:text-champagne-soft"
-        >
+        <EnlaceFlecha href={enlace} className="shrink-0">
           {enlaceTexto}
-          <span
-            aria-hidden="true"
-            className="transition-transform duration-300 group-hover:translate-x-1"
-          >
-            →
-          </span>
-        </Link>
+        </EnlaceFlecha>
       )}
     </div>
   );
@@ -91,7 +132,11 @@ export function Stars({
   const llenas = Math.round(valor);
   return (
     <span className={`inline-flex items-center gap-0.5 ${className}`}>
-      {etiquetado && <span className="sr-only">{valor.toFixed(1)} de 5 estrellas</span>}
+      {etiquetado && (
+        <span className="sr-only">
+          {valor.toLocaleString('es-CO', { maximumFractionDigits: 1 })} de 5 estrellas
+        </span>
+      )}
       {[1, 2, 3, 4, 5].map((indice) => (
         <svg
           key={indice}
@@ -132,10 +177,10 @@ export function EmptyState({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 border border-[var(--surface-line)] px-6 py-16 text-center">
-      <span className="size-2 rotate-45 bg-champagne/70" aria-hidden="true" />
+    <div className="flex flex-col items-center gap-5 border-y border-[var(--surface-line)] px-6 py-20 text-center">
+      <span className="size-2 rotate-45 bg-[var(--acento)] opacity-70" aria-hidden="true" />
       <h3 className="display-md">{titulo}</h3>
-      {texto && <p className="max-w-md text-sm text-[var(--surface-muted)]">{texto}</p>}
+      {texto && <p className="max-w-md text-[0.95rem] leading-relaxed text-[var(--surface-muted)]">{texto}</p>}
       {children}
     </div>
   );

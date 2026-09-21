@@ -62,8 +62,8 @@ const referencias = filas
 
 /* ── Destino: la base de datos ────────────────────────────────────── */
 const cliente = createClient({
-  url: process.env.DATABASE_URL ?? 'file:./data/ylane.db',
-  authToken: process.env.DATABASE_AUTH_TOKEN || undefined,
+  url: process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || 'file:./data/ylane.db',
+  authToken: process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || undefined,
 });
 
 const { rows: productos } = await cliente.execute(

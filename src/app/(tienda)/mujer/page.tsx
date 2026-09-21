@@ -24,6 +24,7 @@ export default async function Pagina({
       base={{ genero: ['DAMA'] }}
       bloqueadas={['genero']}
       rutaBase="/mujer"
+      imagen="/editorial/coleccion-mujer.jpg"
     />
   );
 }

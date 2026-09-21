@@ -1,117 +1,126 @@
+import { nombreSinMarca } from '@/lib/format';
+
 /**
- * Marcador de imagen para las referencias que todavía no tienen fotografía.
+ * Etiqueta tipográfica para las referencias que todavía no tienen fotografía.
  *
- * No representa el frasco real de ningún producto: es una silueta abstracta.
- * Cuando el negocio cargue la foto desde /admin, este marcador desaparece.
- * El tono varía según el código, así que dos referencias contiguas no se ven
- * idénticas y el catálogo no parece repetido.
+ * No dibuja un frasco: un frasco inventado haría creer que ése es el producto,
+ * y uno con «YLANE» impreso sugeriría que YLANE lo fabrica. En su lugar se
+ * compone una ficha de perfumería (marca, nombre, concentración, referencia)
+ * con la tipografía de la casa. Cuando el negocio sube la foto desde /admin,
+ * la etiqueta desaparece sola.
+ *
+ * Todas las medidas van en `cqw` (ancho del escenario), así la etiqueta se ve
+ * igual de proporcionada en una miniatura del buscador que en la ficha.
  */
-function semilla(texto: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < texto.length; i += 1) {
-    hash ^= texto.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+
+const CONCENTRACIONES = [
+  'extrait de parfum',
+  'eau de parfum intense',
+  'eau de parfum',
+  'eau de toilette',
+  'eau de cologne',
+  'parfum',
+  'edp',
+  'edt',
+];
+
+/** Quita del final del nombre la concentración, que la etiqueta ya muestra aparte. */
+function sinConcentracion(nombre: string, concentracion: string | null | undefined): string {
+  if (!concentracion) return nombre;
+  const bajo = nombre.toLowerCase();
+  for (const candidata of [concentracion.toLowerCase(), ...CONCENTRACIONES]) {
+    if (bajo.endsWith(` ${candidata}`)) {
+      const resto = nombre.slice(0, nombre.length - candidata.length).trim();
+      if (resto.length >= 2) return resto;
+    }
   }
-  return Math.abs(hash);
+  return nombre;
 }
 
-const TONOS = [
-  ['#1a1013', '#090909'],
-  ['#180d12', '#0b0a0b'],
-  ['#141018', '#090909'],
-  ['#1b1210', '#0a0908'],
-  ['#101418', '#090a0b'],
-  ['#191014', '#0c0a0b'],
-];
+const ADORNO: Record<string, string> = {
+  arabe: 'text-vino',
+  nicho: 'text-tinta',
+  disenador: 'text-[#8a6a3a]',
+  comercial: 'text-[#8a6a3a]',
+};
 
 export function ProductPlaceholder({
   codigo,
   nombre,
+  marca,
+  tipo,
+  concentracion,
   className = '',
   compacto = false,
 }: {
   codigo: string;
   nombre?: string;
+  marca?: string | null;
+  tipo?: string | null;
+  concentracion?: string | null;
   className?: string;
   compacto?: boolean;
 }) {
-  const s = semilla(codigo);
-  const [inicio, fin] = TONOS[s % TONOS.length];
-  const id = `ph-${codigo.replace(/[^a-zA-Z0-9]/g, '')}`;
-  const desplazamiento = (s % 22) - 11;
+  const nombreVisible = nombre ? sinConcentracion(nombreSinMarca(nombre, marca), concentracion) : codigo;
+  const etiquetaAccesible = nombre ? `${nombre} — fotografía pendiente` : 'Fotografía pendiente';
+
+  if (compacto) {
+    // Miniaturas (buscador, carrito): sólo la inicial de la casa.
+    const inicial = (marca ?? nombre ?? codigo).trim().charAt(0).toUpperCase();
+    return (
+      <div
+        role="img"
+        aria-label={etiquetaAccesible}
+        className={`stage relative flex items-center justify-center overflow-hidden text-tinta ${className}`}
+      >
+        <span className="absolute inset-[9cqw] border border-tinta/15" aria-hidden="true" />
+        <span
+          className="font-[family-name:var(--font-display)] text-[46cqw] leading-none text-tinta/70"
+          aria-hidden="true"
+        >
+          {inicial}
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <svg
-      viewBox="0 0 400 500"
-      className={className}
+    <div
       role="img"
-      aria-label={nombre ? `${nombre} — imagen pendiente` : 'Imagen pendiente'}
-      preserveAspectRatio="xMidYMid slice"
+      aria-label={etiquetaAccesible}
+      className={`stage relative flex flex-col items-center overflow-hidden text-center text-tinta ${className}`}
     >
-      <defs>
-        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0%" stopColor={inicio} />
-          <stop offset="100%" stopColor={fin} />
-        </linearGradient>
-        <linearGradient id={`${id}-glass`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#c7a66a" stopOpacity="0.30" />
-          <stop offset="55%" stopColor="#c7a66a" stopOpacity="0.07" />
-          <stop offset="100%" stopColor="#c7a66a" stopOpacity="0.18" />
-        </linearGradient>
-        <radialGradient id={`${id}-halo`} cx="50%" cy="38%" r="58%">
-          <stop offset="0%" stopColor="#5a101c" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#5a101c" stopOpacity="0" />
-        </radialGradient>
-      </defs>
+      {/* Marco fino, como el de una etiqueta impresa. */}
+      <span className="pointer-events-none absolute inset-[5cqw] border border-tinta/12" aria-hidden="true" />
 
-      <rect width="400" height="500" fill={`url(#${id}-bg)`} />
-      <rect width="400" height="500" fill={`url(#${id}-halo)`} />
+      <span className="relative mt-[15cqw] max-w-[78%] truncate text-[clamp(0.5625rem,3.2cqw,0.78rem)] font-medium uppercase tracking-[0.32em] text-tinta/60">
+        {marca ?? 'Perfumería'}
+      </span>
 
-      <g transform={`translate(${desplazamiento} 0)`} opacity="0.95">
-        {/* Silueta abstracta de flacon */}
-        <rect x="168" y="86" width="64" height="44" rx="3" fill={`url(#${id}-glass)`} />
-        <rect x="168" y="86" width="64" height="44" rx="3" fill="none" stroke="#c7a66a" strokeOpacity="0.35" />
-        <rect x="186" y="130" width="28" height="26" fill="#c7a66a" fillOpacity="0.12" />
-        <rect
-          x="112"
-          y="156"
-          width="176"
-          height="256"
-          rx="10"
-          fill={`url(#${id}-glass)`}
-          stroke="#c7a66a"
-          strokeOpacity="0.38"
-        />
-        <line x1="146" y1="196" x2="146" y2="376" stroke="#f4efe8" strokeOpacity="0.10" strokeWidth="6" />
-        <rect x="150" y="268" width="100" height="46" fill="#090909" fillOpacity="0.35" />
-        <text
-          x="200"
-          y="297"
-          textAnchor="middle"
-          fill="#c7a66a"
-          fillOpacity="0.75"
-          fontFamily="var(--font-display), Georgia, serif"
-          fontSize="17"
-          letterSpacing="5"
+      <span className="relative my-auto flex max-w-[80%] flex-col items-center">
+        <span className="line-clamp-3 text-balance font-[family-name:var(--font-display)] text-[clamp(1.05rem,9cqw,2.6rem)] italic leading-[1.08] text-tinta/88">
+          {nombreVisible}
+        </span>
+        <span
+          className={`mt-[5cqw] flex items-center gap-[2.5cqw] ${ADORNO[tipo ?? ''] ?? 'text-[#8a6a3a]'}`}
+          aria-hidden="true"
         >
-          YLANE
-        </text>
-      </g>
+          <span className="h-px w-[9cqw] bg-current opacity-50" />
+          <svg viewBox="0 0 10 10" className="size-[clamp(0.45rem,2.6cqw,0.7rem)]" fill="currentColor">
+            <path d="M5 0 L6.1 3.9 L10 5 L6.1 6.1 L5 10 L3.9 6.1 L0 5 L3.9 3.9 Z" />
+          </svg>
+          <span className="h-px w-[9cqw] bg-current opacity-50" />
+        </span>
+        {concentracion && (
+          <span className="mt-[4cqw] text-[clamp(0.5625rem,3cqw,0.75rem)] uppercase tracking-[0.24em] text-tinta/55">
+            {concentracion}
+          </span>
+        )}
+      </span>
 
-      {!compacto && (
-        <text
-          x="200"
-          y="452"
-          textAnchor="middle"
-          fill="#f4efe8"
-          fillOpacity="0.35"
-          fontFamily="var(--font-sans), sans-serif"
-          fontSize="13"
-          letterSpacing="4"
-        >
-          {codigo}
-        </text>
-      )}
-    </svg>
+      <span className="relative mb-[12cqw] text-[clamp(0.5rem,2.6cqw,0.68rem)] uppercase tracking-[0.3em] text-tinta/40">
+        Ref. {codigo}
+      </span>
+    </div>
   );
 }

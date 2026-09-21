@@ -65,6 +65,7 @@ export async function recomendar(respuestas: Respuestas, limite = 8) {
       stock: products.stock,
       descripcionCorta: products.descripcionCorta,
       familiaOlfativa: products.familiaOlfativa,
+      concentracion: products.concentracion,
       destacado: products.destacado,
       bestseller: products.bestseller,
       nuevo: products.nuevo,
@@ -124,6 +125,7 @@ export async function recomendar(respuestas: Respuestas, limite = 8) {
 
   const ids = elegidas.map((item) => item.fila.id);
   const imagenes = new Map<number, string>();
+  const segundas = new Map<number, string>();
   if (ids.length) {
     // Mismo orden que el catálogo: primero la principal, luego la secundaria.
     // Sin este ORDER BY podía salir una foto de "notas" o "lifestyle" en la tarjeta.
@@ -139,6 +141,7 @@ export async function recomendar(respuestas: Respuestas, limite = 8) {
       .all();
     for (const imagen of filasImagen) {
       if (!imagenes.has(imagen.productId)) imagenes.set(imagen.productId, imagen.url);
+      else if (!segundas.has(imagen.productId)) segundas.set(imagen.productId, imagen.url);
     }
   }
 
@@ -159,11 +162,13 @@ export async function recomendar(respuestas: Respuestas, limite = 8) {
       stock: item.fila.stock,
       descripcionCorta: item.fila.descripcionCorta,
       familiaOlfativa: item.fila.familiaOlfativa,
+      concentracion: item.fila.concentracion,
       destacado: item.fila.destacado,
       bestseller: item.fila.bestseller,
       nuevo: item.fila.nuevo,
       imagen: imagenes.get(item.fila.id) ?? null,
       imagenAlt: null,
+      imagen2: segundas.get(item.fila.id) ?? null,
       motivos: item.motivos,
     })),
   };

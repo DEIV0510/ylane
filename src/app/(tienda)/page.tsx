@@ -1,237 +1,176 @@
-import Link from 'next/link';
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { banners, categories, orderItems, products } from '@/db/schema';
+import { banners, categories, products } from '@/db/schema';
+import { Colecciones, type Coleccion } from '@/components/home/Colecciones';
+import { ConfianzaFranja } from '@/components/home/ConfianzaFranja';
+import { DescubreTeaser } from '@/components/home/DescubreTeaser';
 import { Hero } from '@/components/home/Hero';
-import { CategoryCard, type CategoriaHome } from '@/components/home/CategoryCard';
-import { ProductRow } from '@/components/product/ProductGrid';
-import { SectionHeader, Divider } from '@/components/ui/Bits';
-import { ButtonLink } from '@/components/ui/Button';
-import { contarProductos, productosPorIds, seleccion } from '@/lib/catalog';
+import { MayoristasBanda } from '@/components/home/MayoristasBanda';
+import { PerfumeriaArabe } from '@/components/home/PerfumeriaArabe';
+import { SeleccionYlane } from '@/components/home/SeleccionYlane';
+import { ProductGrid } from '@/components/product/ProductGrid';
+import { SectionHeader } from '@/components/ui/Bits';
+import {
+  contarProductos,
+  masVistos,
+  seleccion,
+  unaPorMarca,
+  type ProductoVista,
+} from '@/lib/catalog';
 import { getContenido, parsearTarjetas } from '@/lib/content';
 
 export const revalidate = 120;
 
+/**
+ * Portada. Una narrativa, no una pila de carruseles:
+ * marca → producto → descubrimiento → confianza → compra.
+ * El orden y la intención de cada sección están en docs/DIRECCION-DE-ARTE.md.
+ */
 export default async function HomePage() {
-  const [heroBanner, promoBanner, referencias, cats, bloques] = await Promise.all([
-    db
-      .select()
-      .from(banners)
-      .where(and(eq(banners.ubicacion, 'hero'), eq(banners.activo, true)))
-      .orderBy(banners.orden)
-      .get(),
-    db
-      .select()
-      .from(banners)
-      .where(and(eq(banners.ubicacion, 'promo'), eq(banners.activo, true)))
-      .orderBy(banners.orden)
-      .get(),
+  const [heroBanner, promoBanner, referencias, colecciones, bloques] = await Promise.all([
+    bannerActivo('hero'),
+    bannerActivo('promo'),
     contarProductos(),
     categoriasDestacadas(),
     getContenido(['home_intro', 'home_confianza']),
   ]);
 
-  const [destacados, arabes, novedades, nicho, masVendidos] = await Promise.all([
-    seleccion({ flag: 'destacado', limite: 8 }),
-    seleccion({ tipo: ['arabe'], limite: 10 }),
-    seleccion({ orden: 'novedades', limite: 10 }),
-    seleccion({ tipo: ['nicho'], limite: 10 }),
-    productosMasVendidos(),
-  ]);
+  const [destacados, nichoTop, arabeTop, disenadorTop, serieArabe, vistos, firmas, recientes] =
+    await Promise.all([
+      seleccion({ flag: 'destacado', limite: 3 }),
+      unaPorMarca({ tipo: ['nicho'], orden: 'precio-desc' }, 1),
+      unaPorMarca({ tipo: ['arabe'], orden: 'precio-desc' }, 1),
+      unaPorMarca({ tipo: ['disenador'], orden: 'precio-desc' }, 1),
+      unaPorMarca({ tipo: ['arabe'] }, 8),
+      masVistos(4),
+      unaPorMarca({ tipo: ['disenador'] }, 12),
+      seleccion({ orden: 'novedades', limite: 60 }),
+    ]);
 
-  // "Lo que recomendamos" es una afirmación del negocio: sólo se muestra cuando
-  // el negocio marcó destacados en el panel. Rellenar con referencias al azar
-  // sería recomendar algo que nadie eligió.
-  const seleccionYlane = destacados.length >= 4 ? destacados : [];
+  // Ninguna referencia se repite entre secciones.
+  const usados = new Set<number>();
+  // Con `variadas`, además, una sola referencia por marca: cuatro perfumes de la
+  // misma casa seguidos se leen como un listado, no como una selección.
+  const tomar = (lista: ProductoVista[], cantidad: number, variadas = false) => {
+    const marcas = new Set<string>();
+    const elegidos: ProductoVista[] = [];
+    for (const producto of lista) {
+      if (usados.has(producto.id)) continue;
+      const marca = producto.marca ?? producto.codigo;
+      if (variadas && marcas.has(marca)) continue;
+      marcas.add(marca);
+      elegidos.push(producto);
+      if (elegidos.length === cantidad) break;
+    }
+    for (const producto of elegidos) usados.add(producto.id);
+    return elegidos;
+  };
+
+  // La selección la marca el negocio en el panel (Destacado). Mientras no lo
+  // haga, se arma con tres estilos distintos: nicho, árabe y diseñador.
+  const seleccionYlane = tomar(
+    destacados.length >= 3 ? destacados : [...nichoTop, ...arabeTop, ...disenadorTop],
+    3,
+  );
+  const arabes = tomar(serieArabe, 3);
+
+  // «Más buscados» sólo con visitas reales; si todavía no hay datos, la
+  // sección se presenta como lo que es: una muestra de firmas de diseñador.
+  const buscados = vistos.filter((producto) => !usados.has(producto.id));
+  const conDatos = buscados.length >= 4;
+  const masBuscados = tomar(conDatos ? buscados : firmas, 4);
+  const novedades = tomar(recientes, 4, true);
+
+  const totalArabes = colecciones.find((coleccion) => coleccion.slug === 'arabes')?.total ?? 0;
   const confianza = parsearTarjetas(bloques.home_confianza ?? '');
 
   return (
     <>
-      <Hero banner={heroBanner ?? null} referencias={referencias} />
+      {/* 01 */}
+      <Hero banner={heroBanner} referencias={referencias} />
 
-      {/* ── Categorías ─────────────────────────────────────────── */}
-      <section data-surface="oscuro" className="shell py-20 lg:py-28">
-        <SectionHeader
-          eyebrow="Colecciones"
-          titulo="Descubre tu fragancia"
-          texto={bloques.home_intro ?? undefined}
-          enlace="/perfumes"
-          enlaceTexto="Ver todo el catálogo"
-        />
-        <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-4">
-          {cats.map((categoria) => (
-            <CategoryCard
-              key={categoria.slug}
-              categoria={categoria}
-              ancha={categoria.slug === 'arabes'}
-            />
-          ))}
-        </div>
-      </section>
+      {/* 02 */}
+      <SeleccionYlane productos={seleccionYlane} />
 
-      {/* ── Selección YLANE ────────────────────────────────────── */}
-      {seleccionYlane.length > 0 && (
-        <section data-surface="oscuro" className="border-t border-[var(--surface-line)] py-20 lg:py-24">
-          <div className="shell">
-            <SectionHeader
-              eyebrow="Selección YLANE"
-              titulo="Lo que recomendamos"
-              enlace="/perfumes"
-            />
-            <div className="mt-10">
-              <ProductRow productos={seleccionYlane} />
-            </div>
-          </div>
-        </section>
-      )}
+      {/* 03 */}
+      <Colecciones colecciones={colecciones} intro={bloques.home_intro || undefined} />
 
-      {/* ── Perfumería árabe (banda destacada) ─────────────────── */}
+      {/* 04 */}
       {arabes.length > 0 && (
-        <section data-surface="vino" className="grain relative overflow-hidden py-20 lg:py-28">
-          <div className="shell relative">
-            <SectionHeader
-              eyebrow={promoBanner?.subtitulo ?? 'La especialidad de la casa'}
-              titulo={promoBanner?.titulo ?? 'Perfumería árabe'}
-              texto={promoBanner?.texto ?? undefined}
-              enlace={promoBanner?.ctaUrl ?? '/arabes'}
-              enlaceTexto={promoBanner?.ctaTexto ?? 'Ver la colección'}
-            />
-            <div className="mt-10">
-              <ProductRow productos={arabes} />
-            </div>
-          </div>
-        </section>
+        <PerfumeriaArabe banner={promoBanner} productos={arabes} total={totalArabes} />
       )}
 
-      {/* ── Más vendidos: sólo si hay pedidos reales ───────────── */}
-      {masVendidos.length >= 4 && (
-        <section data-surface="oscuro" className="border-t border-[var(--surface-line)] py-20 lg:py-24">
+      {/* 05 */}
+      {masBuscados.length >= 4 && (
+        <section data-surface="claro" className="section-y">
           <div className="shell">
-            <SectionHeader eyebrow="Los que más salen" titulo="Más vendidos" enlace="/perfumes" enlaceTexto="Ver catálogo" />
-            <div className="mt-10">
-              <ProductRow productos={masVendidos} />
+            {conDatos ? (
+              <SectionHeader
+                indice="05"
+                eyebrow="Más buscados"
+                titulo="Lo que más se consulta."
+                texto="Las fichas más visitadas del catálogo en este momento."
+                enlace="/perfumes"
+                enlaceTexto="Ver catálogo"
+              />
+            ) : (
+              <SectionHeader
+                indice="05"
+                eyebrow="Perfumería de diseñador"
+                titulo="Las grandes firmas."
+                texto="Fragancias de las casas de diseñador, cada una de una marca distinta."
+                enlace="/perfumes?tipo=disenador"
+                enlaceTexto="Ver diseñador"
+              />
+            )}
+            <div className="mt-12 lg:mt-16">
+              <ProductGrid productos={masBuscados} columnas={4} />
             </div>
           </div>
         </section>
       )}
 
-      {/* ── Buscador de fragancias ─────────────────────────────── */}
-      <section data-surface="claro" className="py-20 lg:py-28">
-        <div className="shell grid items-center gap-10 lg:grid-cols-[1fr_auto]">
-          <div data-reveal className="max-w-xl">
-            <p className="eyebrow">Asesoría</p>
-            <h2 className="display-lg mt-3">¿No sabes cuál elegir?</h2>
-            <p className="mt-5 text-[0.95rem] leading-relaxed text-[var(--surface-muted)]">
-              Responde cuatro preguntas y te mostramos las referencias de nuestro catálogo
-              que mejor encajan con lo que buscas. Si quieres afinar más, te acompañamos por
-              WhatsApp.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/descubre" tamano="lg">
-                Descubrir mi fragancia
-              </ButtonLink>
-              <ButtonLink href="/perfumes" variante="contorno" tamano="lg">
-                Ver catálogo completo
-              </ButtonLink>
-            </div>
-          </div>
-          <ol data-reveal className="grid gap-4 sm:grid-cols-2 lg:w-[26rem]">
-            {[
-              ['01', '¿Para quién?', 'Hombre, mujer o unisex.'],
-              ['02', '¿Qué transmitir?', 'Elegante, seductor, fresco…'],
-              ['03', '¿Cuándo?', 'Día, noche, trabajo, cita.'],
-              ['04', '¿Qué intensidad?', 'Suave, media o intensa.'],
-            ].map(([numero, titulo, texto]) => (
-              <li key={numero} className="border border-[var(--surface-line)] p-5">
-                <span className="font-[family-name:var(--font-display)] text-2xl text-vino">
-                  {numero}
-                </span>
-                <p className="mt-2 text-[0.9rem] font-medium">{titulo}</p>
-                <p className="mt-1 text-[0.8rem] text-[var(--surface-muted)]">{texto}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      {/* 06 */}
+      <DescubreTeaser />
 
-      {/* ── Novedades + Nicho ──────────────────────────────────── */}
-      {novedades.length > 0 && (
-        <section data-surface="oscuro" className="py-20 lg:py-24">
-          <div className="shell">
-            <SectionHeader eyebrow="Recién ingresadas" titulo="Nuevas en catálogo" enlace="/perfumes?orden=novedades" />
-            <div className="mt-10">
-              <ProductRow productos={novedades} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {nicho.length > 0 && (
-        <section data-surface="oscuro" className="border-t border-[var(--surface-line)] py-20 lg:py-24">
-          <div className="shell">
-            <SectionHeader eyebrow="Selectivo" titulo="Colección nicho" enlace="/perfumes?tipo=nicho" />
-            <div className="mt-10">
-              <ProductRow productos={nicho} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Confianza ──────────────────────────────────────────── */}
-      {confianza.length > 0 && (
-        <section data-surface="claro" className="py-20 lg:py-24">
+      {/* 07 */}
+      {novedades.length >= 4 && (
+        <section data-surface="claro" className="section-y lg:pb-44">
           <div className="shell">
             <SectionHeader
-              eyebrow="Compra con confianza"
-              titulo="Cómo trabajamos"
-              align="center"
-              className="mx-auto"
+              indice="07"
+              eyebrow="Novedades"
+              titulo="Recién llegadas al catálogo."
+              enlace="/perfumes?orden=novedades"
+              enlaceTexto="Ver novedades"
             />
-            <div className="mt-12 grid gap-px border border-[var(--surface-line)] bg-[var(--surface-line)] sm:grid-cols-2 lg:grid-cols-4">
-              {confianza.map((item) => (
-                <div key={item.titulo} data-reveal className="bg-[var(--surface-bg)] p-7">
-                  <span className="block size-1.5 rotate-45 bg-vino" aria-hidden="true" />
-                  <h3 className="mt-5 font-[family-name:var(--font-display)] text-xl">{item.titulo}</h3>
-                  <p className="mt-2 text-[0.85rem] leading-relaxed text-[var(--surface-muted)]">
-                    {item.texto}
-                  </p>
-                </div>
-              ))}
+            <div className="mt-12 lg:mt-16">
+              <ProductGrid productos={novedades} columnas={4} escalonada />
             </div>
           </div>
         </section>
       )}
 
-      {/* ── Mayoristas ─────────────────────────────────────────── */}
-      <section data-surface="oscuro" className="border-t border-[var(--surface-line)] py-20 lg:py-28">
-        <div className="shell">
-          <Divider className="mb-12" />
-          <div data-reveal className="mx-auto max-w-2xl text-center">
-            <p className="eyebrow">Mayoristas</p>
-            <h2 className="display-lg mt-4">Crece con YLANE</h2>
-            <p className="mt-5 text-[0.95rem] leading-relaxed text-[var(--surface-muted)]">
-              ¿Quieres comenzar o hacer crecer tu negocio de perfumería? Trabajamos con
-              revendedores y distribuidores en todo el país.
-            </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <ButtonLink href="/mayoristas" tamano="lg">
-                Solicitar información mayorista
-              </ButtonLink>
-              <Link
-                href="/nosotros"
-                className="inline-flex items-center justify-center px-6 py-4 text-[0.7rem] uppercase tracking-[0.2em] text-marfil-dim underline-offset-4 transition-colors hover:text-champagne hover:underline"
-              >
-                Conocer YLANE
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 08 */}
+      <MayoristasBanda referencias={referencias} />
+
+      {/* 09 */}
+      <ConfianzaFranja puntos={confianza} />
     </>
   );
 }
 
 /* ── Datos de apoyo ─────────────────────────────────────────────── */
+async function bannerActivo(ubicacion: 'hero' | 'promo') {
+  const banner = await db
+    .select()
+    .from(banners)
+    .where(and(eq(banners.ubicacion, ubicacion), eq(banners.activo, true)))
+    .orderBy(banners.orden)
+    .get();
+  return banner ?? null;
+}
+
 const RUTA_CATEGORIA: Record<string, string> = {
   mujer: '/mujer',
   hombre: '/hombre',
@@ -241,7 +180,7 @@ const RUTA_CATEGORIA: Record<string, string> = {
   'best-sellers': '/perfumes?flag=bestseller',
 };
 
-async function categoriasDestacadas(): Promise<CategoriaHome[]> {
+async function categoriasDestacadas(): Promise<Coleccion[]> {
   const filas = await db
     .select()
     .from(categories)
@@ -281,22 +220,6 @@ async function categoriasDestacadas(): Promise<CategoriaHome[]> {
     }),
   );
 
-  // Una tarjeta que lleva a un listado vacío es un enlace roto para el cliente:
-  // «Best Sellers» y demás colecciones sólo aparecen cuando tienen referencias.
+  // Una colección que lleva a un listado vacío es un enlace roto para el cliente.
   return conteos.filter((categoria) => categoria.total > 0);
-}
-
-/** Se calcula con pedidos reales; si todavía no hay ventas, la sección no aparece. */
-async function productosMasVendidos() {
-  const filas = await db
-    .select({ productId: orderItems.productId, unidades: sql<number>`sum(${orderItems.cantidad})` })
-    .from(orderItems)
-    .groupBy(orderItems.productId)
-    .orderBy(desc(sql`sum(${orderItems.cantidad})`))
-    .limit(10)
-    .all();
-
-  const ids = filas.map((fila) => fila.productId).filter((id): id is number => id != null);
-  if (ids.length < 4) return [];
-  return productosPorIds(ids);
 }

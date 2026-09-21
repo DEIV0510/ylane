@@ -24,6 +24,7 @@ export default async function Pagina({
       base={{ genero: ['UNISEX'] }}
       bloqueadas={['genero']}
       rutaBase="/unisex"
+      imagen="/editorial/coleccion-unisex.jpg"
     />
   );
 }

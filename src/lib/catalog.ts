@@ -40,8 +40,11 @@ export type ProductoVista = {
   destacado: boolean;
   bestseller: boolean;
   nuevo: boolean;
+  concentracion: string | null;
   imagen: string | null;
   imagenAlt: string | null;
+  /** Segunda foto (si existe): la tarjeta la muestra al pasar el ratón. */
+  imagen2: string | null;
 };
 
 export type Filtros = {
@@ -73,6 +76,7 @@ const columnas = {
   stock: products.stock,
   descripcionCorta: products.descripcionCorta,
   familiaOlfativa: products.familiaOlfativa,
+  concentracion: products.concentracion,
   destacado: products.destacado,
   bestseller: products.bestseller,
   nuevo: products.nuevo,
@@ -140,7 +144,7 @@ function ordenamiento(orden: string | undefined) {
 
 /** Imagen principal de cada producto (una sola consulta para todo el listado). */
 async function imagenesPrincipales(ids: number[]) {
-  if (!ids.length) return new Map<number, { url: string; alt: string | null }>();
+  if (!ids.length) return new Map<number, { url: string; alt: string | null; url2: string | null }>();
   const filas = await db
     .select({
       productId: productImages.productId,
@@ -158,14 +162,16 @@ async function imagenesPrincipales(ids: number[]) {
     )
     .all();
 
-  const mapa = new Map<number, { url: string; alt: string | null }>();
+  const mapa = new Map<number, { url: string; alt: string | null; url2: string | null }>();
   for (const fila of filas) {
-    if (!mapa.has(fila.productId)) mapa.set(fila.productId, { url: fila.url, alt: fila.alt });
+    const actual = mapa.get(fila.productId);
+    if (!actual) mapa.set(fila.productId, { url: fila.url, alt: fila.alt, url2: null });
+    else if (!actual.url2) actual.url2 = fila.url;
   }
   return mapa;
 }
 
-type FilaProducto = Omit<ProductoVista, 'imagen' | 'imagenAlt'>;
+type FilaProducto = Omit<ProductoVista, 'imagen' | 'imagenAlt' | 'imagen2'>;
 
 async function conImagenes(filas: FilaProducto[]): Promise<ProductoVista[]> {
   const mapa = await imagenesPrincipales(filas.map((fila) => fila.id));
@@ -173,6 +179,7 @@ async function conImagenes(filas: FilaProducto[]): Promise<ProductoVista[]> {
     ...fila,
     imagen: mapa.get(fila.id)?.url ?? null,
     imagenAlt: mapa.get(fila.id)?.alt ?? null,
+    imagen2: mapa.get(fila.id)?.url2 ?? null,
   }));
 }
 
@@ -492,3 +499,53 @@ export const contarProductos = cache(async () => {
     .get();
   return fila?.total ?? 0;
 });
+
+/**
+ * Las referencias más consultadas, medidas con las visitas reales a cada ficha.
+ * Si todavía no hay suficientes datos devuelve [] y la portada no afirma nada.
+ */
+export async function masVistos(limite = 4, minimoVisitas = 12): Promise<ProductoVista[]> {
+  const filas = await db
+    .select(columnas)
+    .from(products)
+    .leftJoin(brands, eq(products.marcaId, brands.id))
+    .where(and(eq(products.activo, true), gte(products.vistas, minimoVisitas)))
+    .orderBy(desc(products.vistas), asc(products.orden))
+    .limit(limite)
+    .all();
+  return filas.length < limite ? [] : conImagenes(filas);
+}
+
+/**
+ * Una referencia por marca, en el orden del catálogo: sirve para armar una
+ * selección variada (tres árabes de tres casas distintas, por ejemplo).
+ */
+export async function unaPorMarca(filtros: Filtros, cantidad: number): Promise<ProductoVista[]> {
+  const candidatos = await seleccion({ ...filtros, limite: 60 });
+  const vistas = new Set<string>();
+  const elegidos: ProductoVista[] = [];
+  // Primero las que ya tienen foto: la portada luce el producto real.
+  const ordenados = [...candidatos].sort((a, b) => Number(Boolean(b.imagen)) - Number(Boolean(a.imagen)));
+  for (const producto of ordenados) {
+    const clave = producto.marca ?? producto.codigo;
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    elegidos.push(producto);
+    if (elegidos.length === cantidad) break;
+  }
+  return elegidos;
+}
+
+/** Marcas cuyo nombre coincide con lo que se escribe en el buscador. */
+export async function marcasCoincidentes(termino: string, limite = 4) {
+  const texto = normalizar(termino);
+  if (texto.length < 2) return [];
+  const filas = await db
+    .select({ slug: brands.slug, nombre: brands.nombre, total: count(products.id) })
+    .from(brands)
+    .innerJoin(products, and(eq(products.marcaId, brands.id), eq(products.activo, true)))
+    .groupBy(brands.id)
+    .orderBy(asc(brands.nombre))
+    .all();
+  return filas.filter((fila) => normalizar(fila.nombre).includes(texto)).slice(0, limite);
+}

@@ -30,6 +30,22 @@ export function formatFechaHora(iso: string | null | undefined): string {
   });
 }
 
+const plano = (texto: string) =>
+  texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+/**
+ * Nombre para mostrar debajo de la marca: si el nombre empieza repitiéndola
+ * ("Afnan 9 PM Elixir", marca Afnan) se muestra "9 PM Elixir".
+ * Es sólo presentación: la ficha, el SEO, el carrito y el buscador usan el
+ * nombre completo tal como viene del catálogo.
+ */
+export function nombreSinMarca(nombre: string, marca: string | null | undefined): string {
+  if (!marca) return nombre;
+  const resto = nombre.slice(marca.length).trim();
+  if (resto.length < 2) return nombre;
+  return plano(nombre).startsWith(`${plano(marca)} `) ? resto : nombre;
+}
+
 export function descuentoPct(precio: number | null, anterior: number | null): number | null {
   if (!precio || !anterior || anterior <= precio) return null;
   return Math.round(((anterior - precio) / anterior) * 100);

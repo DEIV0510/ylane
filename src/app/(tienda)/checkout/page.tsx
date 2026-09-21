@@ -13,11 +13,11 @@ export default async function CheckoutPage() {
   const ajustes = await getSettings();
   const metodos = metodosDisponibles(ajustes);
 
+  // El encabezado vive dentro del formulario: al confirmar pasa a ser
+  // «Pedido registrado» y no quedan dos títulos apilados.
   return (
-    <div data-surface="oscuro" className="shell py-14 lg:py-20">
-      <p className="eyebrow mb-3">Último paso</p>
-      <h1 className="display-lg">Finalizar compra</h1>
-      <div className="mt-12">
+    <div data-surface="claro">
+      <div className="shell pt-10 sm:pt-14 lg:pt-20">
         <CheckoutForm metodos={metodos} />
       </div>
     </div>

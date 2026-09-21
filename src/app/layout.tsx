@@ -11,6 +11,9 @@ const bodoni = Bodoni_Moda({
   display: 'swap',
   variable: '--font-bodoni',
   weight: ['400', '500', '600'],
+  // La cursiva real (no la inclinación sintética del navegador): es la voz
+  // de énfasis de la casa en titulares y etiquetas.
+  style: ['normal', 'italic'],
 });
 
 const jost = Jost({
@@ -47,8 +50,14 @@ export async function generateMetadata(): Promise<Metadata> {
       title: titulo,
       description: descripcion,
       url: siteUrl(),
+      images: [{ url: '/og-ylane.jpg', width: 1200, height: 630, alt: 'YLANE PERFUMES · Tu aroma. Tu firma.' }],
     },
-    twitter: { card: 'summary_large_image', title: titulo, description: descripcion },
+    twitter: {
+      card: 'summary_large_image',
+      title: titulo,
+      description: descripcion,
+      images: ['/og-ylane.jpg'],
+    },
     robots: { index: true, follow: true },
   };
 }

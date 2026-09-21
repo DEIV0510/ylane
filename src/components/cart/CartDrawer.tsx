@@ -1,21 +1,30 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useCarrito } from './CartProvider';
+import { useCarrito, type ItemCarrito } from './CartProvider';
+import { LineaCarrito } from './LineaCarrito';
+import { SeleccionVacia } from './SeleccionVacia';
 import { useConfig } from '@/components/ConfigProvider';
+import { ButtonLink } from '@/components/ui/Button';
 import { formatCOP } from '@/lib/format';
 import { calcularEnvio, calcularTotal } from '@/lib/envio';
 import { mensajePedido, whatsappUrl } from '@/lib/whatsapp';
-import { ProductPlaceholder } from '@/components/product/ProductPlaceholder';
 import { useFocusTrap } from '@/lib/use-focus-trap';
 import { trackEvento } from '@/lib/analytics';
 
+/**
+ * Cajón del carrito: una hoja marfil sobre un velo negro. Cabecera con la
+ * cuenta de artículos, líneas separadas por hilos y un pie fijo con el
+ * subtotal y una sola acción principal: finalizar la compra.
+ */
 export function CartDrawer() {
   const { items, abierto, cerrar, cambiarCantidad, quitar, subtotal, unidades } = useCarrito();
   const config = useConfig();
   const panel = useRef<HTMLElement>(null);
+  const lista = useRef<HTMLUListElement>(null);
+  const vacio = useRef<HTMLDivElement>(null);
+  const [aviso, setAviso] = useState('');
   useFocusTrap(panel, abierto);
 
   useEffect(() => {
@@ -32,6 +41,11 @@ export function CartDrawer() {
     };
   }, [abierto, cerrar]);
 
+  // Un aviso viejo no debe releerse al volver a abrir el cajón.
+  useEffect(() => {
+    if (!abierto) setAviso('');
+  }, [abierto]);
+
   const envio = calcularEnvio(subtotal, { costo: config.envioCosto, gratisDesde: config.envioGratisDesde });
   const total = calcularTotal(subtotal, 0, envio.costo);
 
@@ -40,12 +54,19 @@ export function CartDrawer() {
     mensajePedido(items.map((i) => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })), total),
   );
 
+  // Al quitar una línea su botón desaparece: el foco pasa a la lista (o al
+  // estado vacío) para no salirse del cajón, y el cambio se anuncia.
+  const trasQuitar = (item: ItemCarrito) => {
+    setAviso(`${item.nombre} se quitó de tu selección.`);
+    window.requestAnimationFrame(() => (lista.current ?? vacio.current)?.focus({ preventScroll: true }));
+  };
+
   return (
     <>
       <div
-        aria-hidden={!abierto}
+        aria-hidden="true"
         onClick={cerrar}
-        className={`fixed inset-0 z-60 bg-black/70 backdrop-blur-[2px] transition-opacity duration-400 ${
+        className={`fixed inset-0 z-60 bg-noir/65 transition-opacity duration-500 ease-[var(--ease-silk)] ${
           abierto ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -56,116 +77,76 @@ export function CartDrawer() {
         aria-label="Carrito de compras"
         aria-hidden={!abierto}
         inert={!abierto}
-        className={`fixed right-0 top-0 z-70 flex h-dvh w-full max-w-[26rem] flex-col border-l border-[var(--surface-line)] bg-noir-soft text-marfil transition-transform duration-500 ease-[var(--ease-silk)] ${
+        data-surface="claro"
+        className={`fixed right-0 top-0 z-70 flex h-dvh w-full max-w-[27rem] flex-col pr-[env(safe-area-inset-right)] pt-[env(safe-area-inset-top)] transition-transform duration-500 ease-[var(--ease-silk)] ${
           abierto ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <header className="flex items-center justify-between border-b border-[var(--surface-line)] px-6 py-5">
-          <p className="text-[0.68rem] uppercase tracking-[0.28em]">
-            Tu carrito {unidades > 0 && <span className="text-champagne">({unidades})</span>}
-          </p>
+        <header className="flex items-center justify-between gap-4 border-b border-[var(--surface-line)] py-3 pl-5 pr-3 sm:pl-7 sm:pr-5">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-[1.625rem] leading-none">Tu selección</h2>
+            {unidades > 0 && (
+              <p className="text-[0.6875rem] font-medium uppercase tracking-[0.2em] tabular-nums text-[var(--surface-muted)]">
+                {unidades} {unidades === 1 ? 'artículo' : 'artículos'}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={cerrar}
             aria-label="Cerrar carrito"
-            className="-mr-2 flex size-11 items-center justify-center text-marfil-dim transition-colors hover:text-champagne"
+            className="flex size-11 shrink-0 items-center justify-center transition-colors duration-300 ease-[var(--ease-silk)] hover:text-[var(--acento)]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
         </header>
 
         {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
-            <span className="size-2 rotate-45 bg-champagne/70" aria-hidden="true" />
-            <p className="font-[family-name:var(--font-display)] text-xl">Tu carrito está vacío</p>
-            <p className="text-sm text-[var(--surface-muted)]">
-              Explora la selección y agrega tu próxima fragancia.
-            </p>
-            <Link
-              href="/perfumes"
-              onClick={cerrar}
-              className="border border-current/35 px-6 py-3 text-[0.68rem] uppercase tracking-[0.2em] transition-colors hover:border-champagne hover:text-champagne"
-            >
-              Ver catálogo
-            </Link>
+          <div
+            ref={vacio}
+            tabIndex={-1}
+            className="flex flex-1 flex-col justify-center overflow-y-auto px-5 pb-20 pt-12 outline-none sm:px-7"
+          >
+            <SeleccionVacia nivel="p" compacto alNavegar={cerrar} />
           </div>
         ) : (
           <>
-            <ul className="flex-1 divide-y divide-[var(--surface-line)] overflow-y-auto px-6">
+            <ul
+              ref={lista}
+              tabIndex={-1}
+              aria-label="Fragancias en tu selección"
+              className="flex-1 divide-y divide-[var(--surface-line)] overflow-y-auto overscroll-contain px-5 outline-none sm:px-7"
+            >
               {items.map((item) => (
-                <li key={item.id} className="flex gap-4 py-5">
-                  <Link
-                    href={`/perfumes/${item.slug}`}
-                    onClick={cerrar}
-                    className="relative size-20 shrink-0 overflow-hidden bg-noir"
-                  >
-                    {item.imagen ? (
-                      <Image src={item.imagen} alt={item.nombre} fill sizes="80px" className="object-cover" />
-                    ) : (
-                      <ProductPlaceholder codigo={item.codigo} compacto className="size-full" />
-                    )}
-                  </Link>
-
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    {item.marca && (
-                      <p className="text-[0.55rem] uppercase tracking-[0.22em] text-champagne/80">
-                        {item.marca}
-                      </p>
-                    )}
-                    <Link
-                      href={`/perfumes/${item.slug}`}
-                      onClick={cerrar}
-                      className="truncate font-[family-name:var(--font-display)] text-[0.95rem] hover:text-champagne"
-                    >
-                      {item.nombre}
-                    </Link>
-                    <p className="mt-1 text-[0.8rem] text-marfil-dim">{formatCOP(item.precio)}</p>
-
-                    <div className="mt-auto flex items-center justify-between pt-2">
-                      <div className="flex items-center border border-[var(--surface-line)]">
-                        <button
-                          type="button"
-                          onClick={() => cambiarCantidad(item.id, item.cantidad - 1)}
-                          aria-label={`Quitar una unidad de ${item.nombre}`}
-                          className="px-2.5 py-1 text-marfil-dim transition-colors hover:text-champagne"
-                        >
-                          −
-                        </button>
-                        <span className="min-w-8 text-center text-[0.8rem]">{item.cantidad}</span>
-                        <button
-                          type="button"
-                          onClick={() => cambiarCantidad(item.id, item.cantidad + 1)}
-                          aria-label={`Agregar una unidad de ${item.nombre}`}
-                          className="px-2.5 py-1 text-marfil-dim transition-colors hover:text-champagne"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => quitar(item.id)}
-                        className="text-[0.62rem] uppercase tracking-[0.16em] text-[var(--surface-muted)] transition-colors hover:text-champagne"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </li>
+                <LineaCarrito
+                  key={item.id}
+                  item={item}
+                  alNavegar={cerrar}
+                  alRestar={() => {
+                    cambiarCantidad(item.id, item.cantidad - 1);
+                    if (item.cantidad <= 1) trasQuitar(item);
+                  }}
+                  alSumar={() => cambiarCantidad(item.id, item.cantidad + 1)}
+                  alQuitar={() => {
+                    quitar(item.id);
+                    trasQuitar(item);
+                  }}
+                />
               ))}
             </ul>
 
-            <footer className="border-t border-[var(--surface-line)] px-6 py-5">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[0.68rem] uppercase tracking-[0.24em] text-[var(--surface-muted)]">
+            <footer className="border-t border-[var(--surface-line)] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-7 sm:pt-6">
+              <dl className="flex items-baseline justify-between gap-4">
+                <dt className="text-[0.6875rem] font-medium uppercase tracking-[0.24em] text-[var(--surface-muted)]">
                   Subtotal
-                </span>
-                <span className="font-[family-name:var(--font-display)] text-xl">
+                </dt>
+                <dd className="font-[family-name:var(--font-display)] text-[1.625rem] leading-none tabular-nums">
                   {formatCOP(subtotal)}
-                </span>
-              </div>
-              <p className="mt-1 text-[0.7rem] text-[var(--surface-muted)]">
+                </dd>
+              </dl>
+              <p className="mt-2 text-[0.8125rem] leading-snug tabular-nums text-[var(--surface-muted)]">
                 {envio.costo == null
                   ? 'El envío se coordina contigo al confirmar el pedido.'
                   : envio.costo === 0
@@ -173,31 +154,49 @@ export function CartDrawer() {
                     : `Envío ${formatCOP(envio.costo)} · Total ${formatCOP(total)}`}
               </p>
 
-              <Link
+              <ButtonLink
                 href="/checkout"
+                tamano="lg"
+                className="mt-5 w-full"
                 onClick={() => {
                   trackEvento('InitiateCheckout', { value: subtotal, currency: 'COP' });
                   cerrar();
                 }}
-                className="mt-4 flex w-full items-center justify-center border border-vino bg-vino px-6 py-3.5 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-marfil transition-colors hover:bg-vino-glow"
               >
                 Finalizar compra
-              </Link>
+              </ButtonLink>
 
-              {enlaceWhatsapp && (
-                <a
-                  href={enlaceWhatsapp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackEvento('Contact', { canal: 'whatsapp', origen: 'carrito' })}
-                  className="mt-2 flex w-full items-center justify-center border border-current/30 px-6 py-3 text-[0.68rem] uppercase tracking-[0.2em] transition-colors hover:border-champagne hover:text-champagne"
-                >
-                  Pedir por WhatsApp
-                </a>
-              )}
+              <div
+                className={`mt-2 flex flex-wrap items-center gap-x-6 ${
+                  enlaceWhatsapp ? 'justify-between' : 'justify-center'
+                }`}
+              >
+                <Link href="/carrito" onClick={cerrar} className="link-flecha">
+                  Ver carrito
+                </Link>
+                {enlaceWhatsapp && (
+                  <a
+                    href={enlaceWhatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvento('Contact', { canal: 'whatsapp', origen: 'carrito' })}
+                    className="link-flecha"
+                  >
+                    Pedir por WhatsApp
+                    <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M7 17L17 7M9 7h8v8" />
+                    </svg>
+                    <span className="sr-only"> (se abre en una pestaña nueva)</span>
+                  </a>
+                )}
+              </div>
             </footer>
           </>
         )}
+
+        <p role="status" className="sr-only">
+          {aviso}
+        </p>
       </aside>
     </>
   );

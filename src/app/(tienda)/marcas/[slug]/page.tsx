@@ -17,6 +17,14 @@ async function obtenerMarca(slug: string) {
   return db.select().from(brands).where(eq(brands.slug, slug)).get();
 }
 
+/** Clasificación de la casa, tal como la registra el panel (sin ella: «Marca»). */
+const CLASIFICACION: Record<string, string> = {
+  arabe: 'Perfumería árabe',
+  nicho: 'Perfumería nicho',
+  disenador: 'Perfumería de diseñador',
+  comercial: 'Perfumería comercial',
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const marca = await obtenerMarca(slug);
@@ -38,7 +46,9 @@ export default async function MarcaPage({ params, searchParams }: Props) {
 
   return (
     <CatalogView
-      eyebrow={marca.origen ? TIPO_ETIQUETA[marca.origen] : 'Marca'}
+      eyebrow={
+        marca.origen ? (CLASIFICACION[marca.origen] ?? TIPO_ETIQUETA[marca.origen] ?? 'Marca') : 'Marca'
+      }
       titulo={marca.nombre}
       descripcion={
         marca.descripcion ??
@@ -48,6 +58,7 @@ export default async function MarcaPage({ params, searchParams }: Props) {
       base={{ marca: [marca.slug] }}
       bloqueadas={['marca']}
       rutaBase={`/marcas/${marca.slug}`}
+      volver={{ href: '/marcas', etiqueta: 'Todas las marcas' }}
     />
   );
 }

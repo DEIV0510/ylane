@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Monograma } from '@/components/brand/Logo';
+import { MonogramaOro } from '@/components/brand/Logo';
 import { useConfig } from '@/components/ConfigProvider';
 import { whatsappUrl } from '@/lib/whatsapp';
 import { trackEvento } from '@/lib/analytics';
 
 /* ── Pantalla de carga ──────────────────────────────────────────────
-   Corta y una sola vez por sesión. Nunca bloquea el contenido: se
-   monta encima y se retira sola. Con `prefers-reduced-motion` no aparece. */
+   Menos de un segundo y una sola vez por sesión: el monograma dorado y
+   un hilo. Nunca bloquea el contenido: se monta encima y se retira sola.
+   Con `prefers-reduced-motion` no aparece. */
 export function Loader() {
   const [visible, setVisible] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
@@ -31,8 +32,8 @@ export function Loader() {
       /* sin almacenamiento: se mostrará de nuevo, no es un problema */
     }
 
-    const salida = window.setTimeout(() => setSaliendo(true), 780);
-    const fin = window.setTimeout(() => setVisible(false), 1320);
+    const salida = window.setTimeout(() => setSaliendo(true), 520);
+    const fin = window.setTimeout(() => setVisible(false), 900);
     return () => {
       window.clearTimeout(salida);
       window.clearTimeout(fin);
@@ -44,24 +45,12 @@ export function Loader() {
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-90 flex flex-col items-center justify-center bg-noir transition-opacity duration-500 ${
+      className={`fixed inset-0 z-90 flex flex-col items-center justify-center bg-noir transition-opacity duration-400 ${
         saliendo ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      <Monograma className="h-12 w-auto animate-fade-up text-champagne" />
-      <p
-        className="mt-6 font-[family-name:var(--font-display)] text-xl tracking-[0.45em] text-marfil animate-fade-up"
-        style={{ animationDelay: '120ms', paddingLeft: '0.45em' }}
-      >
-        YLANE
-      </p>
-      <p
-        className="mt-2 text-[0.55rem] uppercase tracking-[0.5em] text-champagne animate-fade-up"
-        style={{ animationDelay: '220ms', paddingLeft: '0.5em' }}
-      >
-        Perfumes
-      </p>
-      <span className="mt-8 h-px w-24 overflow-hidden bg-white/10">
+      <MonogramaOro className="h-16 w-auto animate-fade" />
+      <span className="mt-7 h-px w-16 overflow-hidden bg-white/10">
         <span className="block h-full w-full shimmer" />
       </span>
     </div>
@@ -70,16 +59,16 @@ export function Loader() {
 
 /* ── Revelado al hacer scroll ───────────────────────────────────────
    Marca <html> para que el CSS aplique el estado oculto sólo con JS
-   activo, y revela todo pasados 2,5 s por si el observador no dispara. */
+   activo. Observa también lo que aparece DESPUÉS de cargar (resultados de
+   un filtro, el carrito leído de localStorage, las recomendaciones del
+   buscador de fragancias): sin eso quedarían invisibles. Como red de
+   seguridad, todo lo pendiente se revela a los 2,5 s de aparecer. */
 export function RevealScript() {
-  const ruta = usePathname();
-
   useEffect(() => {
     const raiz = document.documentElement;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     raiz.classList.add('js-ready');
 
-    const elementos = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
     const observador = new IntersectionObserver(
       (entradas) => {
         for (const entrada of entradas) {
@@ -92,20 +81,42 @@ export function RevealScript() {
       { rootMargin: '0px 0px -8% 0px', threshold: 0.05 },
     );
 
-    for (const elemento of elementos) {
-      if (elemento.getBoundingClientRect().top < window.innerHeight) elemento.classList.add('is-in');
-      else observador.observe(elemento);
-    }
+    const seguros = new Set<number>();
+    const vigilar = (elementos: HTMLElement[]) => {
+      const pendientes = elementos.filter((elemento) => !elemento.classList.contains('is-in'));
+      if (!pendientes.length) return;
+      for (const elemento of pendientes) {
+        if (elemento.getBoundingClientRect().top < window.innerHeight) elemento.classList.add('is-in');
+        else observador.observe(elemento);
+      }
+      const seguro = window.setTimeout(() => {
+        seguros.delete(seguro);
+        for (const elemento of pendientes) elemento.classList.add('is-in');
+      }, 2500);
+      seguros.add(seguro);
+    };
 
-    const seguro = window.setTimeout(() => {
-      for (const elemento of elementos) elemento.classList.add('is-in');
-    }, 2500);
+    vigilar(Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]')));
+
+    const mutaciones = new MutationObserver((registros) => {
+      const nuevos: HTMLElement[] = [];
+      for (const registro of registros) {
+        for (const nodo of Array.from(registro.addedNodes)) {
+          if (!(nodo instanceof HTMLElement)) continue;
+          if (nodo.matches('[data-reveal]')) nuevos.push(nodo);
+          nuevos.push(...Array.from(nodo.querySelectorAll<HTMLElement>('[data-reveal]')));
+        }
+      }
+      if (nuevos.length) vigilar(nuevos);
+    });
+    mutaciones.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      mutaciones.disconnect();
       observador.disconnect();
-      window.clearTimeout(seguro);
+      for (const seguro of seguros) window.clearTimeout(seguro);
     };
-  }, [ruta]);
+  }, []);
 
   return null;
 }
@@ -125,7 +136,10 @@ export function WhatsAppButton() {
   }, []);
 
   const url = whatsappUrl(whatsapp, 'Hola, quiero información sobre los perfumes de YLANE.');
-  if (!url || ruta.startsWith('/admin')) return null;
+  // En carrito y checkout ya hay un WhatsApp en el resumen, y el círculo
+  // taparía el botón de confirmar en móvil.
+  const oculto = ['/admin', '/carrito', '/checkout'].some((prefijo) => ruta.startsWith(prefijo));
+  if (!url || oculto) return null;
 
   return (
     <a

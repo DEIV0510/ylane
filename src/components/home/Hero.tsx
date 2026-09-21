@@ -1,108 +1,91 @@
 import Image from 'next/image';
+import { EnlaceFlecha } from '@/components/ui/Bits';
 import { ButtonLink } from '@/components/ui/Button';
 import type { Banner } from '@/db/schema';
-import { HeroArt } from './HeroArt';
 
+/** Fotografía por defecto: se reemplaza sola si el negocio sube una desde /admin → Banners. */
+const FOTO_POR_DEFECTO = '/editorial/hero-oud.jpg';
+
+/**
+ * 01 — Hero. Composición editorial asimétrica: la foto a sangre ocupa la
+ * derecha (≈60 %) y el titular se apoya abajo a la izquierda, en el espacio
+ * negro que la propia foto deja. En móvil la foto va arriba, más baja, y el
+ * texto la pisa con un fundido.
+ */
 export function Hero({ banner, referencias }: { banner: Banner | null; referencias: number }) {
-  const titulo = banner?.titulo ?? 'YLANE PERFUMES';
-  const subtitulo = banner?.subtitulo ?? 'Tu aroma. Tu firma.';
-  const texto =
-    banner?.texto ??
-    'Descubre una selección de fragancias para cada personalidad, ocasión y estilo.';
+  const marca = banner?.titulo?.trim() || 'YLANE PERFUMES';
+  const lema = banner?.subtitulo?.trim() || 'Tu aroma. Tu firma.';
+  const texto = banner?.texto?.trim() || 'Una selección de fragancias para cada personalidad.';
+  const foto = banner?.imagen || FOTO_POR_DEFECTO;
+
+  // "Tu aroma. Tu firma." → dos líneas; la segunda, en cursiva y champagne.
+  const partes = lema.match(/[^.!?]+[.!?]?/g)?.map((parte) => parte.trim()).filter(Boolean) ?? [lema];
 
   return (
-    <section className="grain relative overflow-hidden border-b border-[var(--surface-line)]">
-      {/* Fondo */}
-      <div aria-hidden="true" className="absolute inset-0">
-        {banner?.imagen ? (
-          <>
-            <Image
-              src={banner.imagen}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-linear-to-r from-noir via-noir/85 to-noir/40" />
-          </>
-        ) : (
-          <>
-            <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_78%_18%,rgba(90,16,28,0.55),transparent_62%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_10%_100%,rgba(199,166,106,0.10),transparent_60%)]" />
-          </>
-        )}
+    <section data-surface="oscuro" className="relative isolate overflow-hidden">
+      {/* En móvil la foto empieza debajo de la cabecera: el logo no pisa el frasco. */}
+      <div className="relative mt-[calc(var(--header-alto)+var(--barra-h))] h-[50svh] min-h-[20rem] lg:absolute lg:inset-y-0 lg:left-[38%] lg:right-0 lg:mt-0 lg:h-auto">
+        <Image
+          src={foto}
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 62vw"
+          className="animate-reveal-img object-cover object-[50%_42%]"
+        />
+        {/* Fundidos: hacia abajo en móvil; hacia la izquierda y abajo en escritorio. */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 bg-linear-to-t from-noir via-noir/35 to-noir/40 lg:bg-linear-to-r lg:from-noir lg:via-noir/15 lg:to-transparent"
+        />
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 hidden h-40 bg-linear-to-t from-noir to-transparent lg:block"
+        />
       </div>
 
-      <div className="shell relative grid min-h-[86vh] items-center gap-10 py-20 lg:min-h-[92vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 lg:py-24">
-        <div className="max-w-xl">
-          <p className="eyebrow animate-fade-up">Distribución de perfumería</p>
+      <div className="shell relative -mt-24 pb-16 lg:mt-0 lg:flex lg:min-h-svh lg:items-end lg:pb-[13vh] lg:pt-[calc(var(--header-alto)+var(--barra-h)+4rem)]">
+        <div className="max-w-[40rem]">
+          <p className="indice animate-fade-up">{marca}</p>
 
-          <h1
-            className="display-xl mt-5 animate-fade-up"
-            style={{ animationDelay: '80ms' }}
-          >
-            {titulo}
+          <h1 className="display-hero mt-6 animate-fade-up" style={{ animationDelay: '90ms' }}>
+            {partes.map((parte, indice) => (
+              <span
+                key={parte}
+                className={`block ${indice > 0 ? 'italic text-champagne' : ''}`}
+              >
+                {parte}
+              </span>
+            ))}
           </h1>
 
           <p
-            className="mt-5 animate-fade-up font-[family-name:var(--font-display)] text-2xl italic text-champagne sm:text-3xl"
-            style={{ animationDelay: '160ms' }}
-          >
-            {subtitulo}
-          </p>
-
-          <p
-            className="mt-6 max-w-md animate-fade-up text-[0.95rem] leading-relaxed text-marfil-dim"
-            style={{ animationDelay: '240ms' }}
+            className="lead mt-7 animate-fade-up text-marfil/80"
+            style={{ animationDelay: '180ms' }}
           >
             {texto}
           </p>
 
           <div
-            className="mt-9 flex animate-fade-up flex-col gap-3 sm:flex-row"
-            style={{ animationDelay: '320ms' }}
+            className="mt-10 flex animate-fade-up flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8"
+            style={{ animationDelay: '270ms' }}
           >
-            <ButtonLink href={banner?.ctaUrl ?? '/perfumes'} tamano="lg">
-              {banner?.ctaTexto ?? 'Explorar perfumes'}
+            <ButtonLink href={banner?.ctaUrl || '/perfumes'} tamano="lg" className="w-full sm:w-auto">
+              {banner?.ctaTexto || 'Explorar fragancias'}
             </ButtonLink>
-            <ButtonLink
-              href={banner?.ctaSecundarioUrl ?? '/descubre'}
-              variante="contorno"
-              tamano="lg"
-            >
-              {banner?.ctaSecundarioTexto ?? 'Descubrir mi fragancia'}
-            </ButtonLink>
+            <EnlaceFlecha href={banner?.ctaSecundarioUrl || '/descubre'}>
+              {banner?.ctaSecundarioTexto || 'Descubrir mi perfume'}
+            </EnlaceFlecha>
           </div>
-
-          <dl
-            className="mt-12 flex animate-fade-up flex-wrap gap-x-10 gap-y-4 border-t border-[var(--surface-line)] pt-6"
-            style={{ animationDelay: '400ms' }}
-          >
-            <Dato valor={`${referencias}`} etiqueta="Referencias en catálogo" />
-            <Dato valor="Árabe" etiqueta="Nuestra especialidad" />
-            <Dato valor="Detal y mayor" etiqueta="Modalidades de venta" />
-          </dl>
         </div>
+      </div>
 
-        {!banner?.imagen && (
-          <div className="relative hidden justify-center lg:flex">
-            <HeroArt className="h-[34rem] w-auto animate-drift" />
-          </div>
-        )}
+      {/* Pie del hero: un dato cierto del catálogo, discreto. */}
+      <div className="shell pointer-events-none relative hidden lg:block">
+        <p className="absolute bottom-8 right-16 text-[0.625rem] uppercase tracking-[0.32em] text-marfil/55 xl:right-16">
+          {referencias} fragancias · árabe, diseñador y nicho
+        </p>
       </div>
     </section>
-  );
-}
-
-function Dato({ valor, etiqueta }: { valor: string; etiqueta: string }) {
-  return (
-    <div>
-      <dt className="sr-only">{etiqueta}</dt>
-      <dd className="font-[family-name:var(--font-display)] text-2xl text-marfil">{valor}</dd>
-      <dd className="mt-1 text-[0.6rem] uppercase tracking-[0.2em] text-[var(--surface-muted)]">
-        {etiqueta}
-      </dd>
-    </div>
   );
 }

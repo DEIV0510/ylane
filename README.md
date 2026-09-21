@@ -262,6 +262,8 @@ src/
 
 ## Documentación
 
+- [`docs/DIRECCION-DE-ARTE.md`](docs/DIRECCION-DE-ARTE.md) — el sistema visual: superficies,
+  tipografía, composición de cada sección y lo que no se hace. Léelo antes de tocar el diseño.
 - [`docs/IMPORTACION-PROVEEDOR.md`](docs/IMPORTACION-PROVEEDOR.md) — informe del catálogo
   del proveedor: de dónde salió cada género, qué quedó sin asignar y por qué.
 - [`docs/IMPORTACION.md`](docs/IMPORTACION.md) — informe del primer Excel del negocio.

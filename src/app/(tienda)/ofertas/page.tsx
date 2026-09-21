@@ -24,6 +24,11 @@ export default async function Pagina({
       base={{ flag: 'oferta' }}
       bloqueadas={[]}
       rutaBase="/ofertas"
+      vacio={{
+        titulo: 'Sin ofertas activas',
+        texto:
+          'En este momento no hay referencias con precio rebajado. Cuando haya una promoción, aparecerá aquí.',
+      }}
     />
   );
 }

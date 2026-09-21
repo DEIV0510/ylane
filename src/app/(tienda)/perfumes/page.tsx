@@ -31,11 +31,12 @@ export default async function CatalogoPage({
   const params = await searchParams;
   return (
     <CatalogView
-      eyebrow="Catálogo completo"
-      titulo="Todos los perfumes"
-      descripcion="Perfumería árabe, de diseñador, comercial y nicho. Filtra por género, marca o tipo para encontrar tu próxima fragancia."
+      eyebrow="Catálogo"
+      titulo="Descubre tu fragancia"
+      descripcion="Perfumería árabe, de diseñador, nicho y comercial. Busca por nombre, marca o código, o filtra por género, tipo y precio."
       params={params}
       rutaBase="/perfumes"
+      buscador
     />
   );
 }
