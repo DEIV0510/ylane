@@ -16,6 +16,7 @@
     "db:generate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "importar:proveedor": "node --env-file-if-exists=.env.local scripts/importar-proveedor.ts",
+    "fotos:asignar": "node --env-file-if-exists=.env.local scripts/asignar-fotos.mjs",
     "verificar:fuga": "node --env-file-if-exists=.env.local scripts/verificar-fuga.mjs"
   },
   "dependencies": {
